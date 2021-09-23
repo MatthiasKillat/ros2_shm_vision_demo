@@ -9,10 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package( OpenCV REQUIRED )
-
-# only needed to build a separate iceoryx subscriber
-# which is used to verify Shared Memory communication 
+find_package(OpenCV REQUIRED)
 find_package(iceoryx_posh CONFIG REQUIRED)
 
 include_directories(include)
@@ -20,6 +17,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 set(msg_files
   "msg/ShmTopic.msg"
+  "msg/Image.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -35,7 +33,7 @@ add_executable(talker
   src/talker.cpp
 )
 
-target_link_libraries(talker ${typesupport_target})
+target_link_libraries(talker ${typesupport_target} ${OpenCV_LIBS})
 
 ament_target_dependencies(talker
   "rclcpp"
