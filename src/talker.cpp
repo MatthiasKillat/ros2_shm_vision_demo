@@ -31,12 +31,10 @@
 
 using namespace std::chrono_literals;
 
-namespace demo {
+std::string INPUT_PATH;
+uint32_t INPUT_FPS = 60;
 
-// const std::string video_path("./video/sintel.webm");
-// const std::string video_path("./video/bunny.mp4");
-const std::string video_path("./video/bunny_full_hd.mp4");
-constexpr uint32_t INPUT_FPS = 60;
+namespace demo {
 
 class Talker : public rclcpp::Node {
 private:
@@ -78,7 +76,7 @@ private:
     msg.size = size;
     msg.channels = frame.channels();
     msg.type = frame.type();
-    msg.offset = 0; // TODO alignment
+    msg.offset = 0; // TODO alignment?
     msg.count = m_count;
 
     // TODO: avoid if possible
@@ -98,8 +96,15 @@ private:
 
     std::chrono::milliseconds time_per_frame(1000 / m_fps);
     time_point_t next_time;
-    if (!cap.open(video_path.c_str())) {
-      return;
+
+    if (INPUT_PATH.empty()) {
+      if (!cap.open(0)) {
+        return;
+      }
+    } else {
+      if (!cap.open(INPUT_PATH.c_str())) {
+        return;
+      }
     }
 
     cv::Mat frame;
@@ -144,6 +149,16 @@ private:
 } // namespace demo
 
 int main(int argc, char *argv[]) {
+
+  if (argc > 1) {
+    INPUT_PATH = std::string(argv[1]);
+    std::cout << "VIDEO: " << INPUT_PATH << std::endl;
+  }
+  if (argc > 2) {
+    INPUT_FPS = std::atoi(argv[2]);
+  }
+  std::cout << "INPUT FPS: " << INPUT_FPS << std::endl;
+
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
   rclcpp::spin(std::make_shared<demo::Talker>(options));

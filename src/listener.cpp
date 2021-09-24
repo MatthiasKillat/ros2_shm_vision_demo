@@ -67,10 +67,12 @@ private:
       m_fpsEstimator.start();
     } else {
       if (frameNum != m_frameNum + 1) {
-        m_lost += frameNum - m_frameNum - 1;
+        m_lost += (frameNum - m_frameNum - 1);
       }
     }
     m_frameNum = frameNum;
+    ++m_count;
+    m_fpsEstimator.new_frame();
 
     cv::Mat frame;
     from_message(msg, frame);
@@ -85,14 +87,13 @@ private:
   }
 
   void display(const cv::Mat &frame) {
-    ++m_count;
-    m_fpsEstimator.new_frame();
 
     std::cout << std::fixed << std::setprecision(2);
 
     auto fps = m_fpsEstimator.fps();
-    std::cout << "frame " << m_frameNum << " lost " << m_lost << " fps " << fps
-              << "\r" << std::flush;
+    double loss = (100. * m_lost) / (m_count + m_lost);
+    std::cout << "frame " << m_frameNum << " lost " << m_lost << " (" << loss
+              << "%) fps " << fps << "\r" << std::flush;
 
     cv::imshow("Listener - input ", frame);
     cv::waitKey(1);

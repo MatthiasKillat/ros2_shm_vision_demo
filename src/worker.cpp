@@ -68,20 +68,35 @@ private:
       m_fpsEstimator.start();
     } else {
       if (frameNum != m_frameNum + 1) {
-        m_lost += frameNum - m_frameNum - 1;
+        m_lost += (frameNum - m_frameNum - 1);
       }
     }
     m_frameNum = frameNum;
+    ++m_count;
+    m_fpsEstimator.new_frame();
 
     cv::Mat frame;
     from_message(msg, frame);
 
     display(frame);
 
+    cv::Mat scaled;
+    cv::Mat blue;
     cv::Mat gray;
-    m_filter.to_gray(frame, gray);
-    m_filter.blur(gray, 5, m_filtered);
-    cv::imshow("Worker", m_filtered);
+    cv::Mat edges;
+
+    m_filter.scale(frame, 0.5, scaled);
+    m_filter.to_gray(scaled, gray);
+    m_filter.edges(scaled, edges);
+    m_filter.project_to_blue(scaled, blue);
+
+    cv::cvtColor(gray, gray, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(edges, edges, cv::COLOR_GRAY2BGR);
+
+    cv::hconcat(scaled, blue, blue);
+    cv::hconcat(gray, edges, edges);
+    cv::vconcat(blue, edges, m_filtered);
+    // cv::imshow("Worker", m_filtered);
 
     auto loanedMsg = m_publisher->borrow_loaned_message();
     fill_loaned_message(loanedMsg, m_filtered);
@@ -89,14 +104,13 @@ private:
   }
 
   void display(const cv::Mat &) {
-    ++m_count;
-    m_fpsEstimator.new_frame();
 
     std::cout << std::fixed << std::setprecision(2);
 
     auto fps = m_fpsEstimator.fps();
-    std::cout << "frame " << m_frameNum << " lost " << m_lost << " fps " << fps
-              << "\r" << std::flush;
+    double loss = (100. * m_lost) / (m_count + m_lost);
+    std::cout << "frame " << m_frameNum << " lost " << m_lost << " (" << loss
+              << "%) fps " << fps << "\r" << std::flush;
 
     // cv::imshow("Worker", frame);
     cv::waitKey(1);
