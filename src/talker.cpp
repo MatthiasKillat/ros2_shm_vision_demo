@@ -36,7 +36,7 @@ namespace demo {
 // const std::string video_path("./video/sintel.webm");
 // const std::string video_path("./video/bunny.mp4");
 const std::string video_path("./video/bunny_full_hd.mp4");
-constexpr uint32_t DESIRED_FPS = 30;
+constexpr uint32_t INPUT_FPS = 60;
 
 class Talker : public rclcpp::Node {
 private:
@@ -46,23 +46,20 @@ public:
   explicit Talker(const rclcpp::NodeOptions &options)
       : Node("shm_vision_demo_talker", options),
         m_thread(&Talker::loop, this, std::ref(m_keep_running)) {
-    rclcpp::QoS qos(rclcpp::KeepLast(3));
+    rclcpp::QoS qos(rclcpp::KeepLast(1));
     m_publisher = this->create_publisher<ImageMsg>("input_video", qos);
   }
 
   void stop() { m_keep_running = false; }
 
 private:
-  using clock_t = std::chrono::high_resolution_clock;
-  using time_point_t = std::chrono::time_point<clock_t>;
-
-  StopWatch m_stopWatch;
+  FpsEstimator m_fpsEstimator;
   uint64_t m_count{0};
   rclcpp::Publisher<ImageMsg>::SharedPtr m_publisher;
 
   std::atomic<bool> m_keep_running{true};
   std::thread m_thread;
-  uint32_t m_fps{DESIRED_FPS};
+  uint32_t m_fps{INPUT_FPS};
 
 private:
   void fill_loaned_message(rclcpp::LoanedMessage<ImageMsg> &loanedMsg,
@@ -106,12 +103,12 @@ private:
     }
 
     cv::Mat frame;
-    m_stopWatch.start();
+    m_fpsEstimator.start();
 
     std::cout << std::fixed << std::setprecision(2);
 
     while (keep_running) {
-      next_time = m_stopWatch.now() + time_per_frame;
+      next_time = m_fpsEstimator.now() + time_per_frame;
       cap >> frame;
 
       if (frame.empty()) {
@@ -119,7 +116,10 @@ private:
       }
       // std::cout << m_publisher->get_subscription_count() << std::endl;
 
-      auto fps = m_stopWatch.fps(++m_count);
+      ++m_count;
+      m_fpsEstimator.new_frame();
+
+      auto fps = m_fpsEstimator.fps();
       std::cout << "frame " << m_count << " fps " << fps << " : rows "
                 << frame.rows << " cols " << frame.cols << " channels "
                 << frame.channels() << " cvtype " << frame.type()

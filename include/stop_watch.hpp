@@ -22,7 +22,30 @@ public:
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
   }
 
-private:
+protected:
   time_point_t m_start;
+};
+
+class FpsEstimator : public StopWatch {
+public:
+  FpsEstimator() {}
+
+  void new_frame(uint32_t frames = 1) {
+    m_frames += frames;
+    auto t = now();
+    auto duration = t - m_start;
+    if (duration >= std::chrono::milliseconds(1000)) {
+      m_start = t;
+      m_fps = DECAY * m_fps + (1 - DECAY) * m_frames;
+      m_frames = 0;
+    }
+  }
+
+  double fps() { return m_fps; }
+
+private:
+  static constexpr double DECAY = 0.5;
+  uint32_t m_frames{0};
+  double m_fps{0};
 };
 } // namespace demo

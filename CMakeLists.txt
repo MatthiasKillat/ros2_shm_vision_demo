@@ -16,7 +16,6 @@ include_directories(include)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 set(msg_files
-  "msg/ShmTopic.msg"
   "msg/Image.msg"
 )
 
@@ -36,7 +35,7 @@ add_executable(talker
 target_link_libraries(talker ${typesupport_target} ${OpenCV_LIBS})
 
 ament_target_dependencies(talker
-  "rclcpp"
+  rclcpp
 )
 
 add_executable(listener
@@ -44,15 +43,24 @@ add_executable(listener
 )
 
 ament_target_dependencies(listener
-  "rclcpp"
+  rclcpp
 )
 
 target_link_libraries(listener ${typesupport_target} ${OpenCV_LIBS})
 
-install(TARGETS talker
-  DESTINATION lib/${PROJECT_NAME})
 
-install(TARGETS listener
+add_executable(worker
+  src/worker.cpp
+)
+
+ament_target_dependencies(worker
+  rclcpp
+)
+
+target_link_libraries(worker ${typesupport_target} ${OpenCV_LIBS})
+
+
+install(TARGETS talker listener worker
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
