@@ -47,7 +47,7 @@ ament_target_dependencies(listener
   "rclcpp"
 )
 
-target_link_libraries(listener ${typesupport_target})
+target_link_libraries(listener ${typesupport_target} ${OpenCV_LIBS})
 
 install(TARGETS talker
   DESTINATION lib/${PROJECT_NAME})

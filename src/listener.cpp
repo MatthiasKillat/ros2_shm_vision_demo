@@ -13,47 +13,83 @@
 // limitations under the License.
 
 #include <cstring>
+#include <iomanip>
 #include <memory>
+
+#include <opencv2/opencv.hpp>
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "ros2_shm_vision_demo/msg/shm_topic.hpp"
+#include "ros2_shm_vision_demo/msg/image.hpp"
+#include "stop_watch.hpp"
 
+namespace demo {
 class Listener : public rclcpp::Node {
 private:
-  using Topic = ros2_shm_vision_demo::msg::ShmTopic;
+  using ImageMsg = ros2_shm_vision_demo::msg::Image;
 
 public:
   explicit Listener(const rclcpp::NodeOptions &options)
-      : Node("shm_demo_listener", options) {
+      : Node("shm_demo_vision_listener", options) {
 
     // subscription callback to process arriving data
-    auto callback = [this](const Topic::SharedPtr msg) -> void {
-      // Read the message and perform operations accordingly.
-      // Here we copy the data and display it.
-
-      std::memcpy(m_lastData, msg->data.data(), msg->size);
-      m_lastData[Topic::MAX_SIZE] =
-          '\0'; // in case there was no zero termination
-
-      RCLCPP_INFO(this->get_logger(), "Received %s %lu", m_lastData,
-                  msg->counter);
+    auto callback = [this](const ImageMsg::SharedPtr msg) -> void {
+      process_message(msg);
     };
 
-    rclcpp::QoS qos(rclcpp::KeepLast(10));
-    m_subscription = create_subscription<Topic>("chatter", qos, callback);
+    rclcpp::QoS qos(rclcpp::KeepLast(3));
+    m_subscription =
+        create_subscription<ImageMsg>("input_video", qos, callback);
   }
 
 private:
-  rclcpp::Subscription<Topic>::SharedPtr m_subscription;
+  rclcpp::Subscription<ImageMsg>::SharedPtr m_subscription;
+  StopWatch m_stopWatch;
+  uint64_t m_count{0};
+  uint64_t m_prev{0};
+  uint64_t m_lost{0};
 
-  char m_lastData[256];
+  void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
+    auto buffer = (uint8_t *)msg->data.data();
+    frame = cv::Mat(msg->rows, msg->cols, msg->type, buffer);
+  }
+
+  void process_message(const ImageMsg::SharedPtr &msg) {
+    cv::Mat frame;
+    from_message(msg, frame);
+
+    auto frameNum = msg->count;
+
+    if (m_count == 0) {
+      m_stopWatch.start(); // start with first frame
+    } else {
+      if (frameNum != m_prev + 1) {
+        ++m_lost;
+      }
+    }
+
+    m_prev = frameNum;
+
+    std::cout << std::fixed << std::setprecision(2);
+
+    auto fps = m_stopWatch.fps(++m_count);
+    std::cout << "frame " << frameNum << " lost " << m_lost << " fps " << fps
+              << " : rows " << frame.rows << " cols " << frame.cols
+              << " channels " << frame.channels() << " cvtype " << frame.type()
+              << " elemSize " << frame.elemSize() << " total bytes "
+              << frame.total() * frame.elemSize() << "\r" << std::flush;
+
+    cv::imshow("Listener", frame);
+    cv::waitKey(1);
+  }
 };
+
+} // namespace demo
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
-  rclcpp::spin(std::make_shared<Listener>(options));
+  rclcpp::spin(std::make_shared<demo::Listener>(options));
   rclcpp::shutdown();
 
   return 0;
