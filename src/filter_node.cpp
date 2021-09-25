@@ -24,6 +24,7 @@
 #include "background.hpp"
 #include "filter.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
+#include "saliency.hpp"
 #include "stop_watch.hpp"
 
 namespace demo {
@@ -58,7 +59,8 @@ private:
 
   Filter m_filter;
   BackgroundEstimator m_bgEstimator;
-  cv::Mat m_result;
+  Saliency m_saliency;
+  cv::Mat m_result, m_localOutput;
 
   void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
     auto buffer = (uint8_t *)msg->data.data();
@@ -126,26 +128,41 @@ private:
   }
 
   void algorithm(cv::Mat &frame) {
-    cv::Mat scaled, gray, bg, blurred, blended;
+    cv::Mat scaled, gray, bg, blurred, blended, saliency, blendFactor;
 
     m_filter.scale(frame, 0.5, scaled);
     m_filter.to_gray(scaled, gray);
-    m_filter.blur(gray, 5, gray);
+
+    // m_filter.blur(gray, 5, gray);
     m_filter.blur(scaled, 50, blurred);
 
     m_bgEstimator.process_frame(gray);
+    m_saliency.saliency(gray, saliency);
+    cv::dilate(saliency, saliency, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
 
     auto avg = m_bgEstimator.avg().clone();
     bg = m_bgEstimator.background_avg().clone();
-    m_bgEstimator.background(gray, bg);
-    m_filter.blend(scaled, blurred, bg, blended);
+    // m_bgEstimator.background(gray, bg);
+
+    cv::normalize(saliency, blendFactor, 0, 255, cv::NORM_MINMAX);
+    // cv::threshold(blendFactor, blendFactor, 127, 255, cv::THRESH_BINARY);
+    m_filter.blend(scaled, blurred, blendFactor, blended);
 
     cv::cvtColor(avg, avg, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(gray, gray, cv::COLOR_GRAY2BGR);
     cv::cvtColor(bg, bg, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(saliency, saliency, cv::COLOR_GRAY2BGR);
+
+    // cv::Mat tmp;
+    cv::hconcat(scaled, saliency, saliency);
+    // cv::hconcat(avg, bg, tmp);
+    // cv::vconcat(saliency, tmp, tmp);
+    cv::imshow("Filter saliency", saliency);
 
     cv::hconcat(scaled, blended, blended);
     cv::hconcat(avg, bg, bg);
     cv::vconcat(blended, bg, m_result);
+
     cv::imshow("Filter", m_result);
   }
 };

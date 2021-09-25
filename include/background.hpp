@@ -33,7 +33,7 @@ public:
         bg.at<uchar>(i, j) = std::abs(val - avg);
       }
     }
-    cv::normalize(bg, bg, 0, 255, cv::NORM_MINMAX);
+    // cv::normalize(bg, bg, 0, 255, cv::NORM_MINMAX);
   }
 
   void background_mask(const cv::Mat &gray, uint32_t threshold, cv::Mat &bg) {
@@ -49,7 +49,7 @@ public:
 
 private:
   static constexpr double NEW_FRAME_WEIGHT = 1. / 30;
-  static constexpr double BG_WEIGHT = 1. / 10;
+  static constexpr double BG_WEIGHT = 1. / 3;
   cv::Mat m_avg;
   cv::Mat m_bg;
   uint64_t m_count{0};

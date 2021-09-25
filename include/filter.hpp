@@ -43,6 +43,16 @@ public:
     }
   }
 
+  void extract_channel(const cv::Mat &bgr, uint8_t channel, cv::Mat &out) {
+    out = cv::Mat(bgr.rows, bgr.cols, CV_8UC1);
+    for (int i = 0; i < bgr.rows; ++i) {
+      for (int j = 0; j < bgr.cols; ++j) {
+        auto val = bgr.at<cv::Vec3b>(i, j);
+        out.at<uchar>(i, j) = val[channel];
+      }
+    }
+  }
+
   void scale(const cv::Mat &in, double scaleFactor, cv::Mat &out) {
     int rows = int(in.rows * scaleFactor);
     int cols = int(in.cols * scaleFactor);
