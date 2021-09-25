@@ -49,18 +49,18 @@ ament_target_dependencies(listener
 target_link_libraries(listener ${typesupport_target} ${OpenCV_LIBS})
 
 
-add_executable(worker
-  src/worker.cpp
+add_executable(filter
+  src/filter_node.cpp
 )
 
-ament_target_dependencies(worker
+ament_target_dependencies(filter
   rclcpp
 )
 
-target_link_libraries(worker ${typesupport_target} ${OpenCV_LIBS})
+target_link_libraries(filter ${typesupport_target} ${OpenCV_LIBS})
 
 
-install(TARGETS talker listener worker
+install(TARGETS talker listener filter
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

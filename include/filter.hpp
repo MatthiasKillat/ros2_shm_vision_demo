@@ -49,6 +49,32 @@ public:
     cv::resize(in, out, cv::Size(cols, rows), cv::INTER_LINEAR);
   }
 
+  void blend(const cv::Mat &bgr1, const cv::Mat &bgr2, double blendFactor,
+             cv::Mat &out) {
+    double b = blendFactor;
+    out = cv::Mat(bgr1.rows, bgr1.cols, bgr1.type());
+    for (int i = 0; i < bgr1.rows; ++i) {
+      for (int j = 0; j < bgr1.cols; ++j) {
+        auto &val1 = bgr1.at<cv::Vec3b>(i, j);
+        auto &val2 = bgr2.at<cv::Vec3b>(i, j);
+        out.at<cv::Vec3b>(i, j) = b * val1 + (1 - b) * val2;
+      }
+    }
+  }
+
+  void blend(const cv::Mat &bgr1, const cv::Mat &bgr2,
+             const cv::Mat &blendFactor, cv::Mat &out) {
+    out = cv::Mat(bgr1.rows, bgr1.cols, bgr1.type());
+    for (int i = 0; i < bgr1.rows; ++i) {
+      for (int j = 0; j < bgr1.cols; ++j) {
+        auto &val1 = bgr1.at<cv::Vec3b>(i, j);
+        auto &val2 = bgr2.at<cv::Vec3b>(i, j);
+        double b = blendFactor.at<uchar>(i, j) / 255.;
+        out.at<cv::Vec3b>(i, j) = b * val1 + (1 - b) * val2;
+      }
+    }
+  }
+
 private:
   cv::Mat m_gray;
 };

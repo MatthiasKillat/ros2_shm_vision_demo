@@ -21,18 +21,19 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "background.hpp"
 #include "filter.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
 #include "stop_watch.hpp"
 
 namespace demo {
-class Worker : public rclcpp::Node {
+class FilterNode : public rclcpp::Node {
 private:
   using ImageMsg = ros2_shm_vision_demo::msg::Image;
 
 public:
-  explicit Worker(const rclcpp::NodeOptions &options)
-      : Node("shm_demo_vision_worker", options) {
+  explicit FilterNode(const rclcpp::NodeOptions &options)
+      : Node("shm_demo_vision_filter", options) {
 
     // only work with the latest message and drop the others
     rclcpp::QoS qos(rclcpp::KeepLast(1));
@@ -48,14 +49,16 @@ public:
 
 private:
   rclcpp::Subscription<ImageMsg>::SharedPtr m_subscription;
+  rclcpp::Publisher<ImageMsg>::SharedPtr m_publisher;
+
   FpsEstimator m_fpsEstimator;
   uint64_t m_count{0};
   uint64_t m_lost{0};
   uint64_t m_frameNum{0};
 
   Filter m_filter;
-  rclcpp::Publisher<ImageMsg>::SharedPtr m_publisher;
-  cv::Mat m_filtered;
+  BackgroundEstimator m_bgEstimator;
+  cv::Mat m_result;
 
   void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
     auto buffer = (uint8_t *)msg->data.data();
@@ -78,28 +81,12 @@ private:
     cv::Mat frame;
     from_message(msg, frame);
 
+    algorithm(frame);
+
     display(frame);
 
-    cv::Mat scaled;
-    cv::Mat blue;
-    cv::Mat gray;
-    cv::Mat edges;
-
-    m_filter.scale(frame, 0.5, scaled);
-    m_filter.to_gray(scaled, gray);
-    m_filter.edges(scaled, edges);
-    m_filter.project_to_blue(scaled, blue);
-
-    cv::cvtColor(gray, gray, cv::COLOR_GRAY2BGR);
-    cv::cvtColor(edges, edges, cv::COLOR_GRAY2BGR);
-
-    cv::hconcat(scaled, blue, blue);
-    cv::hconcat(gray, edges, edges);
-    cv::vconcat(blue, edges, m_filtered);
-    // cv::imshow("Worker", m_filtered);
-
     auto loanedMsg = m_publisher->borrow_loaned_message();
-    fill_loaned_message(loanedMsg, m_filtered);
+    fill_loaned_message(loanedMsg, m_result);
     m_publisher->publish(std::move(loanedMsg));
   }
 
@@ -112,7 +99,6 @@ private:
     std::cout << "frame " << m_frameNum << " lost " << m_lost << " (" << loss
               << "%) fps " << fps << "\r" << std::flush;
 
-    // cv::imshow("Worker", frame);
     cv::waitKey(1);
   }
 
@@ -132,11 +118,35 @@ private:
     msg.size = size;
     msg.channels = frame.channels();
     msg.type = frame.type();
-    msg.offset = 0; // TODO alignment
+    msg.offset = 0;
     msg.count = m_count;
 
     // TODO: avoid if possible
     std::memcpy(msg.data.data(), frame.data, size);
+  }
+
+  void algorithm(cv::Mat &frame) {
+    cv::Mat scaled, gray, bg, blurred, blended;
+
+    m_filter.scale(frame, 0.5, scaled);
+    m_filter.to_gray(scaled, gray);
+    m_filter.blur(gray, 5, gray);
+    m_filter.blur(scaled, 50, blurred);
+
+    m_bgEstimator.process_frame(gray);
+
+    auto avg = m_bgEstimator.avg().clone();
+    bg = m_bgEstimator.background_avg().clone();
+    m_bgEstimator.background(gray, bg);
+    m_filter.blend(scaled, blurred, bg, blended);
+
+    cv::cvtColor(avg, avg, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(bg, bg, cv::COLOR_GRAY2BGR);
+
+    cv::hconcat(scaled, blended, blended);
+    cv::hconcat(avg, bg, bg);
+    cv::vconcat(blended, bg, m_result);
+    cv::imshow("Filter", m_result);
   }
 };
 
@@ -145,7 +155,7 @@ private:
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
-  rclcpp::spin(std::make_shared<demo::Worker>(options));
+  rclcpp::spin(std::make_shared<demo::FilterNode>(options));
   rclcpp::shutdown();
 
   return 0;
