@@ -40,17 +40,25 @@ public:
       process_filtered_message(msg);
     };
 
+    auto edgesCallback = [this](const ImageMsg::SharedPtr msg) -> void {
+      process_edges_message(msg);
+    };
+
     rclcpp::QoS qos(rclcpp::KeepLast(5));
     m_inputSubscription =
-        create_subscription<ImageMsg>("input_video", qos, inputCallback);
+        create_subscription<ImageMsg>("input_stream", qos, inputCallback);
 
     m_filteredSubscription =
-        create_subscription<ImageMsg>("filtered_video", qos, filteredCallback);
+        create_subscription<ImageMsg>("filtered_stream", qos, filteredCallback);
+
+    m_edgesSubscription =
+        create_subscription<ImageMsg>("edges_stream", qos, edgesCallback);
   }
 
 private:
   rclcpp::Subscription<ImageMsg>::SharedPtr m_inputSubscription;
   rclcpp::Subscription<ImageMsg>::SharedPtr m_filteredSubscription;
+  rclcpp::Subscription<ImageMsg>::SharedPtr m_edgesSubscription;
   FpsEstimator m_fpsEstimator;
   uint64_t m_count{0};
   uint64_t m_frameNum{0};
@@ -67,7 +75,13 @@ private:
       m_fpsEstimator.start();
     } else {
       if (frameNum != m_frameNum + 1) {
-        m_lost += (frameNum - m_frameNum - 1);
+        if (frameNum > m_frameNum) {
+          m_lost += frameNum - m_frameNum - 1;
+        } else {
+          m_count = 0;
+          m_lost = 0;
+          m_fpsEstimator.start();
+        }
       }
     }
     m_frameNum = frameNum;
@@ -86,14 +100,21 @@ private:
     cv::waitKey(1);
   }
 
+  void process_edges_message(const ImageMsg::SharedPtr &msg) {
+    cv::Mat frame;
+    from_message(msg, frame);
+    cv::imshow("Listener - edges", frame);
+    cv::waitKey(1);
+  }
+
   void display(const cv::Mat &frame) {
 
     std::cout << std::fixed << std::setprecision(2);
 
     auto fps = m_fpsEstimator.fps();
     double loss = (100. * m_lost) / (m_count + m_lost);
-    std::cout << "frame " << m_frameNum << " lost " << m_lost << " (" << loss
-              << "%) fps " << fps << "\r" << std::flush;
+    std::cout << "input frame " << m_frameNum << " lost " << m_lost << " ("
+              << loss << "%) fps " << fps << "\r" << std::flush;
 
     cv::imshow("Listener - input ", frame);
     cv::waitKey(1);

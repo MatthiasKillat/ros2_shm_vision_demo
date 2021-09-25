@@ -14,9 +14,14 @@ public:
       background(gray, m_bg);
     } else {
       m_avg = NEW_FRAME_WEIGHT * gray + (1 - NEW_FRAME_WEIGHT) * m_avg;
-      cv::Mat bg;
-      background(gray, bg);
-      m_bg = BG_WEIGHT * bg + (1 - BG_WEIGHT) * m_bg;
+      if (BG_WEIGHT >= EPS) {
+        cv::Mat bg;
+        background(gray, bg);
+        m_bg = BG_WEIGHT * bg + (1 - BG_WEIGHT) * m_bg;
+      } else {
+        // ignore the past values
+        background(gray, m_bg);
+      }
     }
     ++m_count;
   }
@@ -33,6 +38,7 @@ public:
         bg.at<uchar>(i, j) = std::abs(val - avg);
       }
     }
+    // leads to discontinuities across frames
     // cv::normalize(bg, bg, 0, 255, cv::NORM_MINMAX);
   }
 
@@ -49,7 +55,8 @@ public:
 
 private:
   static constexpr double NEW_FRAME_WEIGHT = 1. / 30;
-  static constexpr double BG_WEIGHT = 1. / 3;
+  static constexpr double EPS = 0.0001;
+  static constexpr double BG_WEIGHT = 0.;
   cv::Mat m_avg;
   cv::Mat m_bg;
   uint64_t m_count{0};

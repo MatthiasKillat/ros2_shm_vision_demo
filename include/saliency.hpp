@@ -6,10 +6,8 @@
 
 namespace demo {
 
-class Saliency {
+class SaliencyFilter {
 public:
-  void reset() { m_count = 0; }
-
   std::array<uint32_t, 256> histogram(const cv::Mat &gray) {
 
     std::array<uint32_t, 256> h{};

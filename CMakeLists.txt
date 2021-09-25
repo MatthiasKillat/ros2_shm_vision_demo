@@ -59,8 +59,18 @@ ament_target_dependencies(filter
 
 target_link_libraries(filter ${typesupport_target} ${OpenCV_LIBS})
 
+add_executable(edge_detector
+  src/edge_detector_node.cpp
+)
 
-install(TARGETS talker listener filter
+ament_target_dependencies(edge_detector
+  rclcpp
+)
+
+target_link_libraries(edge_detector ${typesupport_target} ${OpenCV_LIBS})
+
+
+install(TARGETS talker listener filter edge_detector
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

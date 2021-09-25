@@ -21,24 +21,23 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "background.hpp"
+#include "edge_detector.hpp"
 #include "filter.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
-#include "saliency.hpp"
 #include "stop_watch.hpp"
 
 namespace demo {
-class FilterNode : public rclcpp::Node {
+class EdgeDetectorNode : public rclcpp::Node {
 private:
   using ImageMsg = ros2_shm_vision_demo::msg::Image;
 
 public:
-  explicit FilterNode(const rclcpp::NodeOptions &options)
-      : Node("shm_demo_vision_filter", options) {
+  explicit EdgeDetectorNode(const rclcpp::NodeOptions &options)
+      : Node("shm_demo_vision_edge_detector", options) {
 
     // only work with the latest message and drop the others
     rclcpp::QoS qos(rclcpp::KeepLast(1));
-    m_publisher = this->create_publisher<ImageMsg>("filtered_stream", qos);
+    m_publisher = this->create_publisher<ImageMsg>("edges_stream", qos);
 
     auto callback = [this](const ImageMsg::SharedPtr msg) -> void {
       process_message(msg);
@@ -58,8 +57,7 @@ private:
   uint64_t m_frameNum{0};
 
   Filter m_filter;
-  BackgroundEstimator m_bgEstimator;
-  SaliencyFilter m_saliency;
+  EdgeDetector m_edgeDetector;
   cv::Mat m_result;
 
   void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
@@ -134,35 +132,26 @@ private:
   }
 
   void algorithm(cv::Mat &frame) {
-    cv::Mat scaled, gray, bg, blurred, blended, saliency, blendFactor;
+    cv::Mat scaled, gray, sobel, laplace, canny;
 
     m_filter.scale(frame, 0.5, scaled);
     m_filter.to_gray(scaled, gray);
+    m_filter.blur(gray, 5, gray);
 
-    // m_filter.blur(gray, 5, gray);
-    // m_filter.blur(scaled, 50, blurred);
+    m_edgeDetector.sobel(gray, sobel);
+    m_edgeDetector.canny(gray, canny);
+    m_edgeDetector.laplace(gray, laplace);
+    cv::normalize(laplace, laplace, 0, 255, cv::NORM_MINMAX);
 
-    m_bgEstimator.process_frame(gray);
-    m_saliency.saliency(gray, saliency);
-    // cv::dilate(saliency, saliency, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+    cv::cvtColor(sobel, sobel, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(canny, canny, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(laplace, laplace, cv::COLOR_GRAY2BGR);
 
-    auto avg = m_bgEstimator.avg().clone();
-    bg = m_bgEstimator.background_avg().clone();
+    cv::hconcat(scaled, laplace, laplace);
+    cv::hconcat(canny, sobel, sobel);
+    cv::vconcat(laplace, sobel, m_result);
 
-    // cv::normalize(saliency, blendFactor, 0, 255, cv::NORM_MINMAX);
-    // cv::threshold(blendFactor, blendFactor, 127, 255, cv::THRESH_BINARY);
-    // m_filter.blend(scaled, blurred, blendFactor, blended);
-
-    cv::cvtColor(avg, avg, cv::COLOR_GRAY2BGR);
-    cv::cvtColor(gray, gray, cv::COLOR_GRAY2BGR);
-    cv::cvtColor(bg, bg, cv::COLOR_GRAY2BGR);
-    cv::cvtColor(saliency, saliency, cv::COLOR_GRAY2BGR);
-
-    cv::hconcat(scaled, saliency, saliency);
-    cv::hconcat(avg, bg, bg);
-    cv::vconcat(saliency, bg, m_result);
-
-    // cv::imshow("Filter", m_result);
+    // cv::imshow("Edge Detector", m_result);
   }
 };
 
@@ -171,7 +160,7 @@ private:
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
-  rclcpp::spin(std::make_shared<demo::FilterNode>(options));
+  rclcpp::spin(std::make_shared<demo::EdgeDetectorNode>(options));
   rclcpp::shutdown();
 
   return 0;

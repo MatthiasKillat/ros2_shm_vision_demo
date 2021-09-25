@@ -15,12 +15,6 @@ public:
     cv::cvtColor(in, out, cv::COLOR_BGR2GRAY);
   }
 
-  void edges(const cv::Mat &in, cv::Mat &out) {
-    to_gray(in, m_gray);
-    blur(m_gray, 2, m_gray);
-    cv::Sobel(m_gray, out, CV_8U, 1, 1, 5);
-  }
-
   void project_to_blue(cv::Mat &bgr) {
     for (int i = 0; i < bgr.rows; ++i) {
       for (int j = 0; j < bgr.cols; ++j) {

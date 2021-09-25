@@ -45,7 +45,7 @@ public:
       : Node("shm_vision_demo_talker", options),
         m_thread(&Talker::loop, this, std::ref(m_keep_running)) {
     rclcpp::QoS qos(rclcpp::KeepLast(1));
-    m_publisher = this->create_publisher<ImageMsg>("input_video", qos);
+    m_publisher = this->create_publisher<ImageMsg>("input_stream", qos);
   }
 
   void stop() { m_keep_running = false; }
