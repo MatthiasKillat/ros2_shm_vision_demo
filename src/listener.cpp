@@ -32,33 +32,38 @@ public:
   explicit Listener(const rclcpp::NodeOptions &options)
       : Node("shm_demo_vision_listener", options) {
 
+    rclcpp::QoS qos(rclcpp::KeepLast(1));
+
     auto inputCallback = [this](const ImageMsg::SharedPtr msg) -> void {
       process_input_message(msg);
     };
+    m_inputSubscription =
+        create_subscription<ImageMsg>("input_stream", qos, inputCallback);
 
-    auto filteredCallback = [this](const ImageMsg::SharedPtr msg) -> void {
+    auto filterCallback = [this](const ImageMsg::SharedPtr msg) -> void {
       process_filtered_message(msg);
     };
+    m_filterSubscription =
+        create_subscription<ImageMsg>("filtered_stream", qos, filterCallback);
 
     auto edgesCallback = [this](const ImageMsg::SharedPtr msg) -> void {
       process_edges_message(msg);
     };
-
-    rclcpp::QoS qos(rclcpp::KeepLast(5));
-    m_inputSubscription =
-        create_subscription<ImageMsg>("input_stream", qos, inputCallback);
-
-    m_filteredSubscription =
-        create_subscription<ImageMsg>("filtered_stream", qos, filteredCallback);
-
     m_edgesSubscription =
         create_subscription<ImageMsg>("edges_stream", qos, edgesCallback);
+
+    auto flowCallback = [this](const ImageMsg::SharedPtr msg) -> void {
+      process_optical_flow_message(msg);
+    };
+    m_flowSubscription =
+        create_subscription<ImageMsg>("optical_flow_stream", qos, flowCallback);
   }
 
 private:
   rclcpp::Subscription<ImageMsg>::SharedPtr m_inputSubscription;
-  rclcpp::Subscription<ImageMsg>::SharedPtr m_filteredSubscription;
+  rclcpp::Subscription<ImageMsg>::SharedPtr m_filterSubscription;
   rclcpp::Subscription<ImageMsg>::SharedPtr m_edgesSubscription;
+  rclcpp::Subscription<ImageMsg>::SharedPtr m_flowSubscription;
   FpsEstimator m_fpsEstimator;
   uint64_t m_count{0};
   uint64_t m_frameNum{0};
@@ -96,14 +101,21 @@ private:
   void process_filtered_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
-    cv::imshow("Listener - filtered", frame);
+    cv::imshow("Listener: filter", frame);
     cv::waitKey(1);
   }
 
   void process_edges_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
-    cv::imshow("Listener - edges", frame);
+    cv::imshow("Listener: edges", frame);
+    cv::waitKey(1);
+  }
+
+  void process_optical_flow_message(const ImageMsg::SharedPtr &msg) {
+    cv::Mat frame;
+    from_message(msg, frame);
+    cv::imshow("Listener: optical flow", frame);
     cv::waitKey(1);
   }
 

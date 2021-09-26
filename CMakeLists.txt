@@ -69,8 +69,18 @@ ament_target_dependencies(edge_detector
 
 target_link_libraries(edge_detector ${typesupport_target} ${OpenCV_LIBS})
 
+add_executable(optical_flow
+  src/optical_flow_node.cpp
+)
 
-install(TARGETS talker listener filter edge_detector
+ament_target_dependencies(optical_flow
+  rclcpp
+)
+
+target_link_libraries(optical_flow ${typesupport_target} ${OpenCV_LIBS})
+
+
+install(TARGETS talker listener filter edge_detector optical_flow
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
