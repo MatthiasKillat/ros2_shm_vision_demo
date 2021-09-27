@@ -42,6 +42,7 @@ public:
       process_message(msg);
     };
 
+    m_lastTimestamp = m_fpsEstimator.timestamp();
     m_subscription =
         create_subscription<ImageMsg>("input_stream", qos, callback);
   }
@@ -54,6 +55,8 @@ private:
   uint64_t m_count{0};
   uint64_t m_lost{0};
   uint64_t m_frameNum{0};
+  uint64_t m_latency{0};
+  uint64_t m_lastTimestamp{0};
 
   Filter m_filter;
   cv::Mat m_prevFrameGray;
@@ -65,6 +68,9 @@ private:
   }
 
   void process_message(const ImageMsg::SharedPtr &msg) {
+    auto latency = msg->timestamp - m_lastTimestamp;
+    m_lastTimestamp = msg->timestamp;
+    m_latency = 0.000001 * (0.5 * m_latency + 0.5 * latency);
     auto frameNum = msg->count;
     if (m_count == 0) {
       m_fpsEstimator.start();
@@ -101,8 +107,9 @@ private:
 
     auto fps = m_fpsEstimator.fps();
     double loss = (100. * m_lost) / (m_count + m_lost);
-    std::cout << "frame " << m_frameNum << " lost " << m_lost << " (" << loss
-              << "%) fps " << fps << "\r" << std::flush;
+    std::cout << "input frame " << m_frameNum << " lost " << m_lost << " ("
+              << loss << "%) fps " << fps << " latency " << m_latency << "ms\r"
+              << std::flush;
 
     cv::waitKey(1);
   }
@@ -125,6 +132,7 @@ private:
     msg.type = frame.type();
     msg.offset = 0;
     msg.count = m_count;
+    msg.timestamp = m_fpsEstimator.timestamp();
 
     // TODO: avoid if possible
     std::memcpy(msg.data.data(), frame.data, size);

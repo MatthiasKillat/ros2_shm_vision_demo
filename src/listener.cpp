@@ -37,6 +37,8 @@ public:
     auto inputCallback = [this](const ImageMsg::SharedPtr msg) -> void {
       process_input_message(msg);
     };
+
+    m_lastTimestamp = m_fpsEstimator.timestamp();
     m_inputSubscription =
         create_subscription<ImageMsg>("input_stream", qos, inputCallback);
 
@@ -68,6 +70,8 @@ private:
   uint64_t m_count{0};
   uint64_t m_frameNum{0};
   uint64_t m_lost{0};
+  uint64_t m_latency{0};
+  uint64_t m_lastTimestamp{0};
 
   void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
     auto buffer = (uint8_t *)msg->data.data();
@@ -75,6 +79,10 @@ private:
   }
 
   void process_input_message(const ImageMsg::SharedPtr &msg) {
+    auto latency = msg->timestamp - m_lastTimestamp;
+    m_lastTimestamp = msg->timestamp;
+    m_latency = 0.000001 * (0.5 * m_latency + 0.5 * latency);
+
     auto frameNum = msg->count;
     if (m_count == 0) {
       m_fpsEstimator.start();
@@ -126,7 +134,8 @@ private:
     auto fps = m_fpsEstimator.fps();
     double loss = (100. * m_lost) / (m_count + m_lost);
     std::cout << "input frame " << m_frameNum << " lost " << m_lost << " ("
-              << loss << "%) fps " << fps << "\r" << std::flush;
+              << loss << "%) fps " << fps << " latency " << m_latency << "ms\r"
+              << std::flush;
 
     cv::imshow("Listener - input ", frame);
     cv::waitKey(1);

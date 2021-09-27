@@ -128,6 +128,7 @@ private:
     msg.type = frame.type();
     msg.offset = 0;
     msg.count = m_count;
+    msg.timestamp = m_fpsEstimator.timestamp();
 
     // TODO: avoid if possible
     std::memcpy(msg.data.data(), frame.data, size);

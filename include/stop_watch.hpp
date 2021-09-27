@@ -22,6 +22,11 @@ public:
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
   }
 
+  uint64_t timestamp() {
+    auto d = now().time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
+  }
+
 protected:
   time_point_t m_start;
 };

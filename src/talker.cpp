@@ -60,6 +60,7 @@ private:
   uint32_t m_fps{INPUT_FPS};
 
 private:
+  // TODO: factor out
   void fill_loaned_message(rclcpp::LoanedMessage<ImageMsg> &loanedMsg,
                            const cv::Mat &frame) {
 
@@ -78,6 +79,7 @@ private:
     msg.type = frame.type();
     msg.offset = 0; // TODO alignment?
     msg.count = m_count;
+    msg.timestamp = m_fpsEstimator.timestamp();
 
     // TODO: avoid if possible
     std::memcpy(msg.data.data(), frame.data, size);
