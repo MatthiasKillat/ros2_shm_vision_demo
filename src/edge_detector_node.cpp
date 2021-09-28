@@ -23,6 +23,7 @@
 
 #include "edge_detector.hpp"
 #include "filter.hpp"
+#include "perf_stats.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
 #include "stop_watch.hpp"
 
@@ -51,10 +52,7 @@ private:
   rclcpp::Subscription<ImageMsg>::SharedPtr m_subscription;
   rclcpp::Publisher<ImageMsg>::SharedPtr m_publisher;
 
-  FpsEstimator m_fpsEstimator;
-  uint64_t m_count{0};
-  uint64_t m_lost{0};
-  uint64_t m_frameNum{0};
+  PerfStats m_stats;
 
   Filter m_filter;
   EdgeDetector m_edgeDetector;
@@ -66,23 +64,7 @@ private:
   }
 
   void process_message(const ImageMsg::SharedPtr &msg) {
-    auto frameNum = msg->count;
-    if (m_count == 0) {
-      m_fpsEstimator.start();
-    } else {
-      if (frameNum != m_frameNum + 1) {
-        if (frameNum > m_frameNum) {
-          m_lost += frameNum - m_frameNum - 1;
-        } else {
-          m_count = 0;
-          m_lost = 0;
-          m_fpsEstimator.start();
-        }
-      }
-    }
-    m_frameNum = frameNum;
-    ++m_count;
-    m_fpsEstimator.new_frame();
+    m_stats.new_frame(msg->count, msg->timestamp);
 
     cv::Mat frame;
     from_message(msg, frame);
@@ -97,14 +79,7 @@ private:
   }
 
   void display(const cv::Mat &) {
-
-    std::cout << std::fixed << std::setprecision(2);
-
-    auto fps = m_fpsEstimator.fps();
-    double loss = (100. * m_lost) / (m_count + m_lost);
-    std::cout << "frame " << m_frameNum << " lost " << m_lost << " (" << loss
-              << "%) fps " << fps << "\r" << std::flush;
-
+    m_stats.print();
     cv::waitKey(1);
   }
 
@@ -125,8 +100,8 @@ private:
     msg.channels = frame.channels();
     msg.type = frame.type();
     msg.offset = 0;
-    msg.count = m_count;
-    msg.timestamp = m_fpsEstimator.timestamp();
+    msg.count = m_stats.count();
+    msg.timestamp = m_stats.timestamp();
 
     // TODO: avoid if possible
     std::memcpy(msg.data.data(), frame.data, size);
