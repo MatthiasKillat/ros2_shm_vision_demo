@@ -21,7 +21,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "edge_detector.hpp"
 #include "filter.hpp"
 #include "object_detector.hpp"
 #include "perf_stats.hpp"
@@ -29,17 +28,17 @@
 #include "stop_watch.hpp"
 
 namespace demo {
-class EdgeDetectorNode : public rclcpp::Node {
+class ObjectDetectorNode : public rclcpp::Node {
 private:
   using ImageMsg = ros2_shm_vision_demo::msg::Image;
 
 public:
-  explicit EdgeDetectorNode(const rclcpp::NodeOptions &options)
-      : Node("shm_demo_vision_edge_detector", options) {
+  explicit ObjectDetectorNode(const rclcpp::NodeOptions &options)
+      : Node("shm_demo_vision_object_detector", options) {
 
     // only work with the latest message and drop the others
     rclcpp::QoS qos(rclcpp::KeepLast(1));
-    m_publisher = this->create_publisher<ImageMsg>("edges_stream", qos);
+    m_publisher = this->create_publisher<ImageMsg>("objects_stream", qos);
 
     auto callback = [this](const ImageMsg::SharedPtr msg) -> void {
       process_message(msg);
@@ -56,8 +55,7 @@ private:
   PerfStats m_stats;
 
   Filter m_filter;
-  EdgeDetector m_edgeDetector;
-  ObjectDetector m_objectDetector{"./yolo_config/", 608, 608};
+  ObjectDetector m_objectDetector{"./yolo_config/", 320, 320};
   cv::Mat m_result;
 
   void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
@@ -110,30 +108,11 @@ private:
   }
 
   void algorithm(cv::Mat &frame) {
-    cv::Mat scaled, gray, sobel, laplace, canny;
-
+    cv::Mat scaled;
     m_filter.scale(frame, 0.5, scaled);
-    m_filter.to_gray(scaled, gray);
-    m_filter.blur(gray, 5, gray);
-
-    m_edgeDetector.sobel(gray, sobel);
-    m_edgeDetector.canny(gray, canny);
-    m_edgeDetector.laplace(gray, laplace);
-    cv::normalize(laplace, laplace, 0, 255, cv::NORM_MINMAX);
-
-    cv::cvtColor(sobel, sobel, cv::COLOR_GRAY2BGR);
-    cv::cvtColor(canny, canny, cv::COLOR_GRAY2BGR);
-    cv::cvtColor(laplace, laplace, cv::COLOR_GRAY2BGR);
-
-    cv::hconcat(scaled, laplace, laplace);
-    cv::hconcat(canny, sobel, sobel);
-    cv::vconcat(laplace, sobel, m_result);
-
-    m_objectDetector.process_frame(frame);
-    auto &detected = m_objectDetector.get_result();
-    cv::imshow("Edge Detector", detected);
-
-    // cv::imshow("Edge Detector", m_result);
+    m_objectDetector.process_frame(scaled);
+    m_result = m_objectDetector.get_result();
+    // cv::imshow("Object Detector", m_result);
   }
 };
 
@@ -142,7 +121,7 @@ private:
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
-  rclcpp::spin(std::make_shared<demo::EdgeDetectorNode>(options));
+  rclcpp::spin(std::make_shared<demo::ObjectDetectorNode>(options));
   rclcpp::shutdown();
 
   return 0;

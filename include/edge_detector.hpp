@@ -1,10 +1,10 @@
 #pragma once
 
-#include <array>
-
 #include <opencv2/opencv.hpp>
 
 #include "filter.hpp"
+
+// TODO: add SIFT features
 
 namespace demo {
 

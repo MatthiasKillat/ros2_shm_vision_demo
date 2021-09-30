@@ -59,6 +59,13 @@ public:
     };
     m_flowSubscription =
         create_subscription<ImageMsg>("optical_flow_stream", qos, flowCallback);
+
+    // TODO: we could also just transfer the bounding boxes in a message
+    auto objectsCallback = [this](const ImageMsg::SharedPtr msg) -> void {
+      process_objects_message(msg);
+    };
+    m_objectsSubscription =
+        create_subscription<ImageMsg>("objects_stream", qos, objectsCallback);
   }
 
 private:
@@ -66,6 +73,7 @@ private:
   rclcpp::Subscription<ImageMsg>::SharedPtr m_filterSubscription;
   rclcpp::Subscription<ImageMsg>::SharedPtr m_edgesSubscription;
   rclcpp::Subscription<ImageMsg>::SharedPtr m_flowSubscription;
+  rclcpp::Subscription<ImageMsg>::SharedPtr m_objectsSubscription;
 
   PerfStats m_stats;
 
@@ -100,6 +108,13 @@ private:
     cv::Mat frame;
     from_message(msg, frame);
     cv::imshow("Listener: optical flow", frame);
+    cv::waitKey(1);
+  }
+
+  void process_objects_message(const ImageMsg::SharedPtr &msg) {
+    cv::Mat frame;
+    from_message(msg, frame);
+    cv::imshow("Listener: objects", frame);
     cv::waitKey(1);
   }
 

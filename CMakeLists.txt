@@ -28,59 +28,32 @@ ament_export_dependencies(rosidl_default_runtime)
 rosidl_get_typesupport_target(typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
-add_executable(talker
-  src/talker.cpp
-)
-
+add_executable(talker src/talker.cpp)
 target_link_libraries(talker ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(talker rclcpp)
 
-ament_target_dependencies(talker
-  rclcpp
-)
-
-add_executable(listener
-  src/listener.cpp
-)
-
-ament_target_dependencies(listener
-  rclcpp
-)
-
+add_executable(listener src/listener.cpp)
 target_link_libraries(listener ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(listener rclcpp)
 
-
-add_executable(filter
-  src/filter_node.cpp
-)
-
-ament_target_dependencies(filter
-  rclcpp
-)
-
+add_executable(filter src/filter_node.cpp)
 target_link_libraries(filter ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(filter rclcpp)
 
-add_executable(edge_detector
-  src/edge_detector_node.cpp
-)
-
-ament_target_dependencies(edge_detector
-  rclcpp
-)
-
+add_executable(edge_detector src/edge_detector_node.cpp)
 target_link_libraries(edge_detector ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(edge_detector rclcpp)
 
-add_executable(optical_flow
-  src/optical_flow_node.cpp
-)
-
-ament_target_dependencies(optical_flow
-  rclcpp
-)
-
+add_executable(optical_flow src/optical_flow_node.cpp)
 target_link_libraries(optical_flow ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(optical_flow rclcpp)
+
+add_executable(object_detector src/object_detector_node.cpp)
+target_link_libraries(object_detector ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(object_detector rclcpp)
 
 
-install(TARGETS talker listener filter edge_detector optical_flow
+install(TARGETS talker listener filter edge_detector optical_flow object_detector
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
