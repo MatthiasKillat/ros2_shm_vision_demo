@@ -1,17 +1,3 @@
-// Copyright 2021 Apex.AI, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include <cstring>
 #include <iomanip>
 #include <memory>
@@ -22,6 +8,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "filter.hpp"
+#include "image_message.hpp"
 #include "object_detector.hpp"
 #include "perf_stats.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
@@ -58,11 +45,6 @@ private:
   ObjectDetector m_objectDetector{"./yolo_config/", 320, 320};
   cv::Mat m_result;
 
-  void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
-    auto buffer = (uint8_t *)msg->data.data();
-    frame = cv::Mat(msg->rows, msg->cols, msg->type, buffer);
-  }
-
   void process_message(const ImageMsg::SharedPtr &msg) {
     m_stats.new_frame(msg->count, msg->timestamp);
 
@@ -74,37 +56,14 @@ private:
     display(frame);
 
     auto loanedMsg = m_publisher->borrow_loaned_message();
-    fill_loaned_message(loanedMsg, m_result);
+    fill_loaned_message(loanedMsg, m_result, m_stats.timestamp(),
+                        m_stats.count());
     m_publisher->publish(std::move(loanedMsg));
   }
 
   void display(const cv::Mat &) {
     m_stats.print();
     cv::waitKey(1);
-  }
-
-  void fill_loaned_message(rclcpp::LoanedMessage<ImageMsg> &loanedMsg,
-                           const cv::Mat &frame) {
-
-    ImageMsg &msg = loanedMsg.get();
-    auto size = frame.elemSize() * frame.total();
-    if (size > ImageMsg::MAX_SIZE) {
-      std::stringstream s;
-      s << "MAX_SIZE exceeded - message requires " << size << "bytes\n";
-      throw std::runtime_error(s.str());
-    }
-
-    msg.rows = frame.rows;
-    msg.cols = frame.cols;
-    msg.size = size;
-    msg.channels = frame.channels();
-    msg.type = frame.type();
-    msg.offset = 0;
-    msg.count = m_stats.count();
-    msg.timestamp = m_stats.timestamp();
-
-    // TODO: avoid if possible
-    std::memcpy(msg.data.data(), frame.data, size);
   }
 
   void algorithm(cv::Mat &frame) {
