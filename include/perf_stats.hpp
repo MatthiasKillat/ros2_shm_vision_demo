@@ -11,7 +11,9 @@ class PerfStats {
 public:
   PerfStats() : m_lastTimestamp(m_fpsEstimator.timestamp()) {}
   void new_frame(uint64_t frameNum, uint64_t timestamp) {
-    auto latency = timestamp - m_lastTimestamp;
+
+    // note: clocks are not synchronized so this is a rough approximation
+    auto latency = m_fpsEstimator.timestamp() - timestamp;
     m_lastTimestamp = timestamp;
     m_latency = 0.000001 * (0.5 * m_latency + 0.5 * latency);
     if (m_count == 0) {

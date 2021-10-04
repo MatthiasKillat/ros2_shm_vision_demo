@@ -20,7 +20,7 @@ public:
   explicit Listener(const rclcpp::NodeOptions &options)
       : Node("shm_demo_vision_listener", options) {
 
-    rclcpp::QoS qos(rclcpp::KeepLast(1));
+    rclcpp::QoS qos(rclcpp::KeepLast(3));
 
     auto inputCallback = [this](const ImageMsg::SharedPtr msg) -> void {
       process_input_message(msg);

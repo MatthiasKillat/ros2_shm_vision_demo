@@ -10,7 +10,6 @@
 #include "edge_detector.hpp"
 #include "filter.hpp"
 #include "image_message.hpp"
-#include "object_detector.hpp"
 #include "perf_stats.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
 #include "stop_watch.hpp"
@@ -44,7 +43,6 @@ private:
 
   Filter m_filter;
   EdgeDetector m_edgeDetector;
-  ObjectDetector m_objectDetector{"./yolo_config/", 608, 608};
   cv::Mat m_result;
 
   void process_message(const ImageMsg::SharedPtr &msg) {
@@ -87,10 +85,6 @@ private:
     cv::hconcat(scaled, laplace, laplace);
     cv::hconcat(canny, sobel, sobel);
     cv::vconcat(laplace, sobel, m_result);
-
-    m_objectDetector.process_frame(frame);
-    auto &detected = m_objectDetector.get_result();
-    cv::imshow("Edge Detector", detected);
 
     // cv::imshow("Edge Detector", m_result);
   }

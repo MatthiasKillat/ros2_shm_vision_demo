@@ -70,21 +70,21 @@ private:
     m_filter.scale(frame, 0.5, scaled);
     m_filter.to_gray(scaled, gray);
 
-    // cv::TermCriteria crit;
-
-    if (!m_prevFrameGray.empty()) {
-      cv::calcOpticalFlowFarneback(m_prevFrameGray, gray, flow, 0.4, 1, 12, 2,
-                                   8, 1.2, 0);
-      visualize_flow_hsv(flow, angle, magnitude);
-      cv::vconcat(scaled, magnitude, magnitude);
-      visualize_flow_field(flow, scaled, 3);
-      cv::vconcat(scaled, angle, angle);
-      cv::hconcat(magnitude, angle, m_result);
-
-      // cv::imshow("Optical Flow", m_result);
+    if (m_prevFrameGray.empty()) {
+      m_prevFrameGray = gray;
     }
 
-    m_prevFrameGray = gray.clone();
+    cv::calcOpticalFlowFarneback(m_prevFrameGray, gray, flow, 0.4, 1, 12, 2, 8,
+                                 1.2, 0);
+    visualize_flow_hsv(flow, angle, magnitude);
+    cv::vconcat(scaled, magnitude, magnitude);
+    visualize_flow_field(flow, scaled, 3);
+    cv::vconcat(scaled, angle, angle);
+    cv::hconcat(magnitude, angle, m_result);
+
+    // cv::imshow("Optical Flow", m_result);
+
+    m_prevFrameGray = gray;
   }
 
   void visualize_flow_hsv(const cv::Mat &flow, cv::Mat &angleBgr,

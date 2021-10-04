@@ -42,7 +42,7 @@ void from_loaned_message(const rclcpp::LoanedMessage<ImageMsg> &loanedMsg,
 }
 
 void from_message(const ImageMsg::SharedPtr &msg, cv::Mat &frame) {
-  auto buffer = (uint8_t *)msg->data.data();
+  void *buffer = msg->data.data();
   frame = cv::Mat(msg->rows, msg->cols, msg->type, buffer);
 }
 
