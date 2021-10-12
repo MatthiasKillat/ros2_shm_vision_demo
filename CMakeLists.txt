@@ -28,13 +28,13 @@ ament_export_dependencies(rosidl_default_runtime)
 rosidl_get_typesupport_target(typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
-add_executable(talker src/talker.cpp)
-target_link_libraries(talker ${typesupport_target} ${OpenCV_LIBS})
-ament_target_dependencies(talker rclcpp)
+add_executable(camera src/talker.cpp)
+target_link_libraries(camera ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(camera rclcpp)
 
-add_executable(listener src/listener.cpp)
-target_link_libraries(listener ${typesupport_target} ${OpenCV_LIBS})
-ament_target_dependencies(listener rclcpp)
+add_executable(display src/listener.cpp)
+target_link_libraries(display ${typesupport_target} ${OpenCV_LIBS})
+ament_target_dependencies(display rclcpp)
 
 add_executable(filter src/filter_node.cpp)
 target_link_libraries(filter ${typesupport_target} ${OpenCV_LIBS})
@@ -53,7 +53,7 @@ target_link_libraries(object_detector ${typesupport_target} ${OpenCV_LIBS})
 ament_target_dependencies(object_detector rclcpp)
 
 
-install(TARGETS talker listener filter edge_detector optical_flow object_detector
+install(TARGETS camera display filter edge_detector optical_flow object_detector
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

@@ -8,11 +8,11 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "filter.hpp"
+#include "fps_estimator.hpp"
 #include "image_message.hpp"
 #include "object_detector.hpp"
 #include "perf_stats.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
-#include "stop_watch.hpp"
 
 namespace demo {
 class ObjectDetectorNode : public rclcpp::Node {
@@ -65,7 +65,7 @@ private:
   }
 
   void display() {
-    m_stats.print();
+    m_stats.print("object detector ");
     cv::waitKey(1);
   }
 

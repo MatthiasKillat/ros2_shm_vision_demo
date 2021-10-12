@@ -9,10 +9,10 @@
 
 #include "edge_detector.hpp"
 #include "filter.hpp"
+#include "fps_estimator.hpp"
 #include "image_message.hpp"
 #include "perf_stats.hpp"
 #include "ros2_shm_vision_demo/msg/image.hpp"
-#include "stop_watch.hpp"
 
 namespace demo {
 class EdgeDetectorNode : public rclcpp::Node {
@@ -62,7 +62,7 @@ private:
   }
 
   void display(const cv::Mat &) {
-    m_stats.print();
+    m_stats.print("edge detector ");
     cv::waitKey(1);
   }
 
