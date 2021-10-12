@@ -33,6 +33,7 @@ public:
 
     m_subscription =
         create_subscription<ImageMsg>("input_stream", qos, callback);
+    std::cout << "object detector ready" << std::endl;
   }
 
 private:
@@ -46,6 +47,8 @@ private:
   cv::Mat m_result;
 
   void process_message(const ImageMsg::SharedPtr &msg) {
+    // executor thread is delayed so this timestamp is also
+    // delayed hence the large latency in the beginning?
     m_stats.new_frame(msg->count, msg->timestamp);
 
     cv::Mat frame;
@@ -53,7 +56,7 @@ private:
 
     algorithm(frame);
 
-    display(frame);
+    display();
 
     auto loanedMsg = m_publisher->borrow_loaned_message();
     fill_loaned_message(loanedMsg, m_result, m_stats.timestamp(),
@@ -61,7 +64,7 @@ private:
     m_publisher->publish(std::move(loanedMsg));
   }
 
-  void display(const cv::Mat &) {
+  void display() {
     m_stats.print();
     cv::waitKey(1);
   }

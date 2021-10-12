@@ -78,15 +78,18 @@ private:
       }
       // std::cout << m_publisher->get_subscription_count() << std::endl;
 
-      ++m_count;
       m_fpsEstimator.new_frame();
 
       auto fps = m_fpsEstimator.fps();
-      std::cout << "frame " << m_count << " fps " << fps << " : rows "
-                << frame.rows << " cols " << frame.cols << " channels "
-                << frame.channels() << " cvtype " << frame.type()
-                << " elemSize " << frame.elemSize() << " total bytes "
-                << frame.total() * frame.elemSize() << "\r" << std::flush;
+      auto avgfps = m_fpsEstimator.avgFps();
+      ++m_count;
+
+      std::cout << "frame " << m_count << " fps " << fps << " ( " << avgfps
+                << ") : rows " << frame.rows << " cols " << frame.cols
+                << " channels " << frame.channels() << " cvtype "
+                << frame.type() << " elemSize " << frame.elemSize()
+                << " total bytes " << frame.total() * frame.elemSize() << "\r"
+                << std::flush;
 
       // cv::imshow("Talker", frame);
 
