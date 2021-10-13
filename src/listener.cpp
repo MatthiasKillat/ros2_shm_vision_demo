@@ -70,7 +70,7 @@ private:
   }
 
   void process_input_message(const ImageMsg::SharedPtr &msg) {
-    m_stats.new_frame(msg->count, msg->timestamp);
+    m_stats.new_frame(msg->count, msg->timestamp, m_stats.timestamp());
 
     cv::Mat frame;
     from_message(msg, frame);

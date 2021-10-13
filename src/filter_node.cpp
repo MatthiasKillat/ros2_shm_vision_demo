@@ -33,47 +33,39 @@ public:
     m_publisher = this->create_publisher<ImageMsg>("filtered_stream", qos);
 
     auto callback = [this](const ImageMsg::SharedPtr msg) -> void {
-      // hold_message(msg);
-
-      // std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-      // if we do this here we will accumulate to many shared memory chunks in
-      // the system due to the executor being delayed and iceoryx chunks piling
-      // up in the queue
-      process_message(msg);
+      receive_message(msg);
+      // process_message(msg);
     };
+
+    m_computationThread = std::thread(&FilterNode::thread_main, this);
 
     m_subscription =
         create_subscription<ImageMsg>("input_stream", qos, callback);
-    // m_thread = std::thread(&FilterNode::processing_thread_main, this);
   }
 
   ~FilterNode() {
-    stop_processing();
-    // if (m_thread.joinable()) {
-    //   m_thread.join();
-    // }
-  }
-
-  void stop_processing() {
-    {
-      std::lock_guard<ProtectedConditionVariable> lock(m_condVar);
-      m_keepProcessing = false;
+    m_keepRunning = false;
+    if (m_computationThread.joinable()) {
+      m_computationThread.join();
     }
-    m_condVar.notify_one();
   }
 
 private:
-  // could use a lock protected or lockfree queue instead in the general case
-  // TODO: proper abstraction once overall design is finished
-  // pointer to shared pointer needed for simple lockfree construction
-  ExchangeBuffer<ImageMsg::SharedPtr> m_exchangeBuffer;
-  ProtectedConditionVariable m_condVar;
-  std::atomic_bool m_keepProcessing{true};
-  std::thread m_thread;
-
   rclcpp::Subscription<ImageMsg>::SharedPtr m_subscription;
   rclcpp::Publisher<ImageMsg>::SharedPtr m_publisher;
+
+  std::atomic_bool m_keepRunning{true};
+  std::thread m_computationThread;
+
+  struct ReceivedMsg {
+    ReceivedMsg(const ImageMsg::SharedPtr &msg, uint64_t time)
+        : msg(msg), receive_time(time) {}
+
+    const ImageMsg::SharedPtr msg;
+    uint64_t receive_time;
+  };
+
+  ExchangeBuffer<ReceivedMsg> m_buffer;
 
   PerfStats m_stats;
 
@@ -82,20 +74,26 @@ private:
   SaliencyFilter m_saliency;
   cv::Mat m_result;
 
-  void hold_message(const ImageMsg::SharedPtr &msg) {
-    auto p = new ImageMsg::SharedPtr(msg);
-    ImageMsg::SharedPtr *oldMsg;
-    {
-      std::lock_guard<ProtectedConditionVariable> lock(m_condVar);
-      oldMsg = m_exchangeBuffer.write(p);
+  void receive_message(const ImageMsg::SharedPtr &msg) {
+    auto p = new ReceivedMsg(msg, m_stats.timestamp());
+    p = m_buffer.write(p);
+    delete p;
+  }
+
+  void thread_main() {
+    // TODO: wait on semaphore
+    while (m_keepRunning) {
+      auto p = m_buffer.take();
+      if (p) {
+        auto &msg = p->msg;
+        m_stats.new_frame(msg->count, msg->timestamp, p->receive_time);
+        process_message(msg);
+        delete p;
+      }
     }
-    m_condVar.notify_one();
-    // skip and free message
-    delete oldMsg;
   }
 
   void process_message(const ImageMsg::SharedPtr &msg) {
-    m_stats.new_frame(msg->count, msg->timestamp);
     cv::Mat frame;
     from_message(msg, frame);
 
@@ -108,21 +106,6 @@ private:
     fill_loaned_message(loanedMsg, m_result, m_stats.timestamp(),
                         m_stats.count());
     m_publisher->publish(std::move(loanedMsg));
-  }
-
-  void processing_thread_main() {
-    while (m_keepProcessing) {
-      m_condVar.wait([this]() {
-        return m_exchangeBuffer.has_data() || !m_keepProcessing;
-      });
-      auto msg = m_exchangeBuffer.take();
-      if (msg) {
-        process_message(*msg);
-        // processed message can be freed
-        delete msg;
-      }
-    }
-    std::cout << "processing thread finished" << std::endl;
   }
 
   void display(const cv::Mat &) {
@@ -167,10 +150,10 @@ private:
 
 std::shared_ptr<demo::FilterNode> node;
 
-void sig_handler(int) {
-  node->stop_processing();
-  rclcpp::shutdown();
-}
+// void sig_handler(int) {
+//   node->stop_processing();
+//   rclcpp::shutdown();
+// }
 
 int main(int argc, char *argv[]) {
 
@@ -178,8 +161,8 @@ int main(int argc, char *argv[]) {
   rclcpp::NodeOptions options;
 
   node = std::make_shared<demo::FilterNode>(options);
-  signal(SIGINT, sig_handler);
-  signal(SIGTERM, sig_handler);
+  // signal(SIGINT, sig_handler);
+  // signal(SIGTERM, sig_handler);
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;

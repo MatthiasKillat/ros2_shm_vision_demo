@@ -14,15 +14,14 @@ private:
 public:
   PerfStats(uint64_t skipFirst = 1)
       : m_skipFirst(skipFirst), m_skipCount(skipFirst) {}
-  void new_frame(uint64_t frameNum, uint64_t timestamp) {
+  void new_frame(uint64_t frameNum, uint64_t send_time, uint64_t receive_time) {
 
     if (m_skipCount > 0) {
       --m_skipCount;
       return;
     }
 
-    // note: clocks are not synchronized so this is a rough approximation
-    m_latency = NANO_TO_MS * (m_fpsEstimator.timestamp() - timestamp);
+    m_latency = NANO_TO_MS * (receive_time - send_time);
 
     if (m_count == 0) {
       m_fpsEstimator.start();
@@ -39,6 +38,7 @@ public:
     m_frameNum = frameNum;
     m_fpsEstimator.new_frame();
 
+    // m_latencyAvg = 0.9 * m_latencyAvg + 0.1 * m_latency;
     m_latencyAvg = m_count * m_latencyAvg + m_latency;
     ++m_count;
     m_latencyAvg /= m_count;

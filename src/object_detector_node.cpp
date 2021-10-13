@@ -7,6 +7,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "exchange_sync.hpp"
 #include "filter.hpp"
 #include "fps_estimator.hpp"
 #include "image_message.hpp"
@@ -28,17 +29,40 @@ public:
     m_publisher = this->create_publisher<ImageMsg>("objects_stream", qos);
 
     auto callback = [this](const ImageMsg::SharedPtr msg) -> void {
-      process_message(msg);
+      receive_message(msg);
+      // process_message(msg);
     };
+
+    m_computationThread = std::thread(&ObjectDetectorNode::thread_main, this);
 
     m_subscription =
         create_subscription<ImageMsg>("input_stream", qos, callback);
     std::cout << "object detector ready" << std::endl;
   }
 
+  ~ObjectDetectorNode() {
+    m_keepRunning = false;
+    if (m_computationThread.joinable()) {
+      m_computationThread.join();
+    }
+  }
+
 private:
   rclcpp::Subscription<ImageMsg>::SharedPtr m_subscription;
   rclcpp::Publisher<ImageMsg>::SharedPtr m_publisher;
+
+  std::atomic_bool m_keepRunning{true};
+  std::thread m_computationThread;
+
+  struct ReceivedMsg {
+    ReceivedMsg(const ImageMsg::SharedPtr &msg, uint64_t time)
+        : msg(msg), receive_time(time) {}
+
+    const ImageMsg::SharedPtr msg;
+    uint64_t receive_time;
+  };
+
+  ExchangeBuffer<ReceivedMsg> m_buffer;
 
   PerfStats m_stats;
 
@@ -46,11 +70,25 @@ private:
   ObjectDetector m_objectDetector{"./yolo_config/", 320, 320};
   cv::Mat m_result;
 
-  void process_message(const ImageMsg::SharedPtr &msg) {
-    // executor thread is delayed so this timestamp is also
-    // delayed hence the large latency in the beginning?
-    m_stats.new_frame(msg->count, msg->timestamp);
+  void receive_message(const ImageMsg::SharedPtr &msg) {
+    auto p = new ReceivedMsg(msg, m_stats.timestamp());
+    p = m_buffer.write(p);
+    delete p;
+  }
 
+  void thread_main() {
+    while (m_keepRunning) {
+      auto p = m_buffer.take();
+      if (p) {
+        auto &msg = p->msg;
+        m_stats.new_frame(msg->count, msg->timestamp, p->receive_time);
+        process_message(msg);
+        delete p;
+      }
+    }
+  }
+
+  void process_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
 
