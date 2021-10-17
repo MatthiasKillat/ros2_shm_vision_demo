@@ -18,13 +18,14 @@ public:
   }
 
   T *write(T *value) {
-    T *oldValue = m_data.load();
-    while (true) {
-      if (m_data.compare_exchange_strong(oldValue, value)) {
-        return oldValue;
-      }
-    }
-    return nullptr;
+    // T *oldValue = m_data.load();
+    // while (true) {
+    //   if (m_data.compare_exchange_strong(oldValue, value)) {
+    //     return oldValue;
+    //   }
+    // }
+    // return nullptr;
+    return m_data.exchange(value);
   }
 
   T *take() { return m_data.exchange(nullptr); }

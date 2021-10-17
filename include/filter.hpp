@@ -47,6 +47,18 @@ public:
     }
   }
 
+  void downscale(const cv::Mat &in, int scaleFactor, cv::Mat &out) {
+    int rows = in.rows / scaleFactor;
+    int cols = in.cols / scaleFactor;
+    cv::resize(in, out, cv::Size(cols, rows), cv::INTER_LINEAR);
+  }
+
+  void upscale(const cv::Mat &in, int scaleFactor, cv::Mat &out) {
+    int rows = in.rows * scaleFactor;
+    int cols = in.cols * scaleFactor;
+    cv::resize(in, out, cv::Size(cols, rows), cv::INTER_LINEAR);
+  }
+
   void scale(const cv::Mat &in, double scaleFactor, cv::Mat &out) {
     int rows = int(in.rows * scaleFactor);
     int cols = int(in.cols * scaleFactor);

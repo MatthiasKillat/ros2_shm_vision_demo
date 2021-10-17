@@ -90,6 +90,10 @@ private:
     cv::Mat frame;
     from_message(msg, frame);
 
+    if (frame.size().empty()) {
+      return;
+    }
+
     algorithm(frame);
 
     display(frame);
@@ -107,7 +111,7 @@ private:
 
   void algorithm(cv::Mat &frame) {
     cv::Mat scaled, gray, flow, angle, magnitude;
-    m_filter.scale(frame, 0.5, scaled);
+    m_filter.downscale(frame, 2, scaled);
     m_filter.to_gray(scaled, gray);
 
     if (m_prevFrameGray.empty()) {
@@ -133,7 +137,9 @@ private:
     cv::split(flow, flowChannels);
     cv::Mat angle, magnitude;
     cv::cartToPolar(flowChannels[0], flowChannels[1], magnitude, angle, true);
-    cv::normalize(magnitude, magnitude, 0.0f, 1.0f, cv::NORM_MINMAX);
+    // cv::normalize(magnitude, magnitude, 0.0f, 1.0f, cv::NORM_MINMAX);
+    // cv::convertScaleAbs(magnitude, magnitude, 0.1);
+    magnitude *= 0.1;
     angle *= ((1.f / 360.f) * (180.f / 255.f));
 
     cv::Mat hsvChannels[3], hsv, hsv8, bgr;

@@ -85,11 +85,14 @@ private:
       ++m_count;
 
       std::cout << "frame " << m_count << " fps " << fps << " ( " << avgfps
-                << ") : rows " << frame.rows << " cols " << frame.cols
-                << " channels " << frame.channels() << " cvtype "
-                << frame.type() << " elemSize " << frame.elemSize()
-                << " total bytes " << frame.total() * frame.elemSize() << "\r"
-                << std::flush;
+                << ") : height " << frame.rows << " width " << frame.cols
+                << " channels " << frame.channels() << " bytes "
+                << frame.total() * frame.elemSize() << std::endl;
+      //<< " cvtype "
+      // << frame.type() << " elemSize " << frame.elemSize()
+      // << " total bytes " << frame.total() * frame.elemSize()
+      // << "\r"
+      // << std::flush;
 
       // cv::imshow("Talker", frame);
 

@@ -97,6 +97,10 @@ private:
     cv::Mat frame;
     from_message(msg, frame);
 
+    if (frame.size().empty()) {
+      return;
+    }
+
     algorithm(frame);
     // std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -116,7 +120,7 @@ private:
   void algorithm(cv::Mat &frame) {
     cv::Mat scaled, gray, bg, blurred, blended, saliency, blendFactor;
 
-    m_filter.scale(frame, 0.5, scaled);
+    m_filter.downscale(frame, 2, scaled);
     m_filter.to_gray(scaled, gray);
 
     // m_filter.blur(gray, 5, gray);

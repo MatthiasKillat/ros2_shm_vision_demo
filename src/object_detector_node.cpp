@@ -92,6 +92,10 @@ private:
     cv::Mat frame;
     from_message(msg, frame);
 
+    if (frame.size().empty()) {
+      return;
+    }
+
     algorithm(frame);
 
     display();
@@ -109,7 +113,7 @@ private:
 
   void algorithm(cv::Mat &frame) {
     cv::Mat scaled;
-    m_filter.scale(frame, 0.5, scaled);
+    m_filter.downscale(frame, 2, scaled);
     m_objectDetector.process_frame(scaled);
     m_result = m_objectDetector.get_result();
     // cv::imshow("Object Detector", m_result);

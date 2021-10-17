@@ -91,6 +91,10 @@ private:
     cv::Mat frame;
     from_message(msg, frame);
 
+    if (frame.size().empty()) {
+      return;
+    }
+
     algorithm(frame);
 
     display(frame);
@@ -109,7 +113,7 @@ private:
   void algorithm(cv::Mat &frame) {
     cv::Mat scaled, gray, sobel, laplace, canny;
 
-    m_filter.scale(frame, 0.5, scaled);
+    m_filter.downscale(frame, 2, scaled);
     m_filter.to_gray(scaled, gray);
     m_filter.blur(gray, 5, gray);
 

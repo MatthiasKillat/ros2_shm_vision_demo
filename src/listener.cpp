@@ -80,6 +80,8 @@ private:
   std::atomic_bool m_keepRunning{true};
   std::thread m_computationThread;
 
+  cv::Mat m_fusionResult;
+
   struct ReceivedMsg {
     ReceivedMsg(const ImageMsg::SharedPtr &msg, uint64_t time)
         : msg(msg), receive_time(time) {}
@@ -140,6 +142,10 @@ private:
         process_objects_message(msg);
         delete p;
       }
+
+      if (fusionInitialized()) {
+        cv::imshow("Display: all ", m_fusionResult);
+      }
       cv::waitKey(1);
     }
   }
@@ -147,37 +153,87 @@ private:
   void process_input_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
+    if (frame.size().empty()) {
+      return;
+    }
     m_stats.print("display ");
     cv::imshow("Display: input ", frame);
+
+    // TODO: brittle, improve setting the buffer
+    // cannot deal with size change etc.
+    if (m_fusionResult.rows != frame.rows) {
+      m_fusionResult =
+          cv::Mat::zeros(cv::Size(frame.cols, frame.rows), CV_8UC3);
+    }
   }
 
   void process_filter_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
+    if (frame.size().empty()) {
+      return;
+    }
+
     cv::imshow("Display: filter", frame);
-    // cv::waitKey(1);
+
+    if (fusionInitialized()) {
+      auto r = frame.rows / 2;
+      auto c = frame.cols / 2;
+      cv::Mat dstRoi(m_fusionResult, cv::Rect(0, r, c, r));
+      cv::Mat srcRoi(frame, cv::Rect(c, r, c, r));
+      srcRoi.copyTo(dstRoi);
+    }
   }
 
   void process_edges_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
+    if (frame.size().empty()) {
+      return;
+    }
     cv::imshow("Display: edges", frame);
-    // cv::waitKey(1);
+
+    if (fusionInitialized()) {
+      auto r = frame.rows / 2;
+      auto c = frame.cols / 2;
+      cv::Mat dstRoi(m_fusionResult, cv::Rect(c, r, c, r));
+      cv::Mat srcRoi(frame, cv::Rect(c, r, c, r));
+      srcRoi.copyTo(dstRoi);
+    }
   }
 
   void process_optical_flow_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
+    if (frame.size().empty()) {
+      return;
+    }
     cv::imshow("Display: optical flow", frame);
-    // cv::waitKey(1);
+
+    if (fusionInitialized()) {
+      auto r = frame.rows / 2;
+      auto c = frame.cols / 2;
+      cv::Mat dstRoi(m_fusionResult, cv::Rect(c, 0, c, r));
+      cv::Mat srcRoi(frame, cv::Rect(c, 0, c, r));
+      srcRoi.copyTo(dstRoi);
+    }
   }
 
   void process_objects_message(const ImageMsg::SharedPtr &msg) {
     cv::Mat frame;
     from_message(msg, frame);
-    cv::imshow("Display: objects", frame);
-    // cv::waitKey(1);
+    if (frame.size().empty()) {
+      return;
+    }
+    // cv::imshow("Display: objects", frame);
+
+    if (fusionInitialized()) {
+      cv::Mat dstRoi(m_fusionResult, cv::Rect(0, 0, frame.cols, frame.rows));
+      frame.copyTo(dstRoi);
+    }
   }
+
+  bool fusionInitialized() { return m_fusionResult.rows > 0; }
 };
 
 } // namespace demo
