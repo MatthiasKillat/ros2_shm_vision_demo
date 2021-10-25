@@ -85,7 +85,7 @@ private:
       ++m_count;
 
       std::cout << "frame " << m_count << " fps " << fps << " ( " << avgfps
-                << ") : height " << frame.rows << " width " << frame.cols
+                << ") height " << frame.rows << " width " << frame.cols
                 << " channels " << frame.channels() << " bytes "
                 << frame.total() * frame.elemSize() << std::endl;
       //<< " cvtype "

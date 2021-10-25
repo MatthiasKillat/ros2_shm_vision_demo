@@ -174,7 +174,7 @@ private:
       return;
     }
 
-    cv::imshow("Display: filter", frame);
+    // cv::imshow("Display: filter", frame);
 
     if (fusionInitialized()) {
       auto r = frame.rows / 2;
@@ -191,7 +191,7 @@ private:
     if (frame.size().empty()) {
       return;
     }
-    cv::imshow("Display: edges", frame);
+    // cv::imshow("Display: edges", frame);
 
     if (fusionInitialized()) {
       auto r = frame.rows / 2;

@@ -5,8 +5,8 @@ window="ros2 vision demo"
 
 ros2_ws="~/ade-home/ros2_rolling/"
 package="ros2_shm_vision_demo"
+#set some video path
 video="./video/apex_ai.mp4"
-#video="./video/bunny_full_hd.mp4"
 
 tmux new-session -d -s $session
 tmux rename-window -t 0 $window
