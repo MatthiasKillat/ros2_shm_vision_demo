@@ -61,6 +61,8 @@ public:
     };
     m_objectsSubscription =
         create_subscription<ImageMsg>("objects_stream", qos, objectsCallback);
+    
+    m_windowName = "ROS 2 Vision Demo";
   }
 
   ~Listener() {
@@ -81,6 +83,8 @@ private:
   std::thread m_computationThread;
 
   cv::Mat m_fusionResult;
+  
+  std::string m_windowName;
 
   struct ReceivedMsg {
     ReceivedMsg(const ImageMsg::SharedPtr &msg, uint64_t time)
@@ -144,7 +148,8 @@ private:
       }
 
       if (fusionInitialized()) {
-        cv::imshow("Display: all ", m_fusionResult);
+        cv::namedWindow(m_windowName);
+        cv::imshow(m_windowName, m_fusionResult);
       }
       cv::waitKey(1);
     }
@@ -157,7 +162,8 @@ private:
       return;
     }
     m_stats.print("display ");
-    cv::imshow("Display: input ", frame);
+    cv::namedWindow(m_windowName);
+    cv::imshow(m_windowName, frame);  // display_input
 
     // TODO: brittle, improve setting the buffer
     // cannot deal with size change etc.
@@ -208,7 +214,8 @@ private:
     if (frame.size().empty()) {
       return;
     }
-    cv::imshow("Display: optical flow", frame);
+    cv::namedWindow(m_windowName);
+    cv::imshow(m_windowName, frame);  // display_optical_flow
 
     if (fusionInitialized()) {
       auto r = frame.rows / 2;
