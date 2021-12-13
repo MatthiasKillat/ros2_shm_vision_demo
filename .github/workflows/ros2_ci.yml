@@ -20,6 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        package_name:
+          - ros2_shm_vision_demo
         ros_distribution:
           - rolling
         include:
@@ -30,14 +32,14 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: setup workspace
-        run: mkdir -p ros2_ws/src
+        run: mkdir -p ros2_ws/src/${{ matrix.package_name }}
       - name: checkout
         uses: actions/checkout@v2
         with:
-          path: ros2_ws/src
+          path: ros2_ws/src/${{ matrix.package_name }}
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.2
         with:
-          package-name: ros2_shm_vision_demo
+          package-name: ${{ matrix.package_name }}
           target-ros2-distro: ${{ matrix.ros_distribution }}
           vcs-repo-file-url: ""
