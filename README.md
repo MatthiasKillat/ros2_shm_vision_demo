@@ -1,4 +1,4 @@
-# ros2_shm_vision_demo
+# shm_vision_demo
 
 Demonstrate how to use shared memory with image processing algorithms.
 
@@ -6,10 +6,11 @@ Note this is highly experimental and requires much clean up. It may still serve 
 
 ## Requirements
 
-Only works with ROS 2 Rolling.
+As of today this package only supports ROS 2 Rolling.
+
 ROS 2 Galactic is not supported due to some cmake command changes.
 
-Also require yolo3 object detection parameters found here.
+Also require yolov3 object detection parameters which are automatically downloaded at build time using the `scripts/download_yolo_weights.sh` script.
 
 ## Installation
 
@@ -17,30 +18,48 @@ TODO: more detail
 
 1. Install ROS 2 Rolling
 
-2. Clone the ros2_shm_vision_demo repo into the src folder of the ROS 2 Rolling installation.
+2. Clone the `shm_vision_demo` repo into your `colcon_ws/src` directory
 
-3. Build using `colcon build --packages-up-to ros2_shm_vision_demo`
+3. Clone `iceoryx` repo into your `colcon_ws/src` directory - parallel with the repo you just cloned in step number two
 
-4. Create a folder vision_config in your ROS 2 Rolling workspace (parallel to src). Copy the cyclonedds.xml and roudi_config.toml to this folder. (This should be automatically installed properly later but currently it is not).
+4. Build using `colcon build --packages-up-to shm_vision_demo`.  While building it will automatically fetch the `yolov3.weights` file from https://pjreddie.com/darknet/yolo/ and copy them to the `shm_vision_demo/config` directory. The weights file is fairly large so it is not included in the repository but automatically downloaded during the build.
 
-5. Obtain the yolo3 config files from https://pjreddie.com/darknet/yolo/ and copy them to the same folder (The application currently uses hardcoded paths, to be changed later). The following files are needed coco.names (config folder), yolov3.cfg and yolov3.weights (YOLOv3-320 for the right image size). The weights file is fairly large so it is not included in the repository.
+The following files are needed in the `config/` directory:
+  - `coco.names`
+  - `yolov3.cfg`
+  - `yolov3.weights` (YOLOv3-320 for the right image size)
 
-6. Adapt the `ros2_ws` and `video` variables as in the of the tmux scripts (scripts folder) as needed (TODO install scripts, relative paths). `ros2_ws` needs to point to the ROS 2 rolling workspace and `video` to some full hd video.
+
+5. Adapt the `ros2_ws` and `video` variables in the `scripts/demo.sh` and `scripts/shm_demo.sh` scripts, located in the `scripts` folder as needed. `ros2_ws` needs to point to the ROS 2 rolling workspace and `video` to some full hd video.
 
 ## Running the applications
 
+By default the provided `demo.sh` and `shm_demo.sh` scripts will try to use your devices camera running live. If for some reason you do not wish to use your camera, you may pass in an argument to each script specifying an `.mp4` file to use instead.
+
+### Quickstart
+
+```
+cd shm_vision_demo/scripts
+# to run on live camera connected to device
+./shm_demo.sh
+# to run demo on pre-recorded video
+./shm_demo.sh ~/videos/my_cool_video.mp4
+```
+
 ### Without Shared Memory
 
-Run the `demo.sh` script, it should start all applications and show the corresponding outputs.
+Ensure you are in the scripts directory: `cd shm_vision_demo/scripts/`
+
+Run the `./demo.sh` script, it should start all applications and show the corresponding outputs.
 Alternatively all (or a subset of) the applications can be started on their own (cf. parameterization in the script).
 
-'stop_demo.sh` stops all applications and the tmux session.
+`stop_demo.sh` stops all applications and the tmux session or alternatively enter `ctrl+b` then `kill-session` to kill the running `tmux` session.
 
 ### With Shared Memory
 
-Run the `demo.sh` script, it should start all applications and show the corresponding outputs. This will automatically load the `cyclonedds.xml` configuration. In addition the RouDi shared memory daemon will be started with the configuration `roudi_config.toml`-
+Run the `shm_demo.sh` script, it should start all applications and show the corresponding outputs. This will automatically load the `cyclonedds.xml` configuration. In addition the RouDi shared memory daemon will be started with the configuration `roudi_config.toml`-
 
-'stop_demo.sh` stops all applications and the tmux session.
+`stop_demo.sh` stops all applications and the tmux session or alternatively enter `ctrl+b` then `kill-session` to kill the running `tmux` session.
 
 ## TODO
 

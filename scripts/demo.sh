@@ -3,10 +3,20 @@
 session="demo"
 window="ros2 vision demo"
 
-ros2_ws="~/ade-home/ros2_rolling/"
-package="ros2_shm_vision_demo"
-#set some video path
-video="./video/apex_ai.mp4"
+ros2_ws="$HOME/code/ros/rolling"
+package="shm_vision_demo"
+
+# if argument is present, use that for filename
+if [[ -z "$1" ]]; then
+  # default
+  video=""
+else
+  video="$1"
+fi
+
+source ./utils.sh
+
+checkDeps tmux bmon sysstat
 
 tmux new-session -d -s $session
 tmux rename-window -t 0 $window

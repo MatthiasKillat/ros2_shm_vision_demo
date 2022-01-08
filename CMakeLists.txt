@@ -6,9 +6,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-find_package(rclcpp REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
 find_package(OpenCV REQUIRED)
 find_package(iceoryx_posh CONFIG REQUIRED)
 
@@ -52,13 +52,21 @@ add_executable(object_detector src/object_detector_node.cpp)
 target_link_libraries(object_detector ${typesupport_target} ${OpenCV_LIBS})
 ament_target_dependencies(object_detector rclcpp)
 
-
 install(TARGETS camera display filter edge_detector optical_flow object_detector
   DESTINATION lib/${PROJECT_NAME})
+
+# download yolov3 weights to shm_vision_demo/models/
+add_custom_command(TARGET object_detector
+  PRE_BUILD
+  COMMAND sh scripts/download_yolo_weights.sh yolov3.weights
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "YOLOv3 weights")
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_package()
+ament_auto_package(
+  INSTALL_TO_SHARE config scripts
+)
