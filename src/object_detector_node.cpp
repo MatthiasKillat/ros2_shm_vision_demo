@@ -32,7 +32,6 @@
 namespace demo
 {
 
-
 class ObjectDetectorNode : public rclcpp::Node
 {
 public:
@@ -84,7 +83,8 @@ private:
   PerfStats m_stats;
 
   Filter m_filter;
-  ObjectDetector m_objectDetector{"./vision_config/", 320, 320};
+  ObjectDetector m_objectDetector{
+    "./install/shm_vision_demo/share/shm_vision_demo/config/", 320, 320};
   cv::Mat m_result;
 
   void receive_message(const ImageMsg::SharedPtr & msg)

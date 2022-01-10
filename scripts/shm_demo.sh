@@ -3,11 +3,16 @@
 session="demo"
 window="ros2 vision demo"
 
-ros2_ws="~/ade-home/ros2_rolling/"
-package="ros2_shm_vision_demo"
-#set some video path
-video="./video/apex_ai.mp4"
+ros2_ws="$HOME/code/ros/rolling"
+package="shm_vision_demo"
+iceoryx_path="$ros2_ws/install/iceoryx_posh/bin"
+pkg_share_path="${ros2_ws}/install/$package/share/$package"
 
+# includ helper functions
+source ./utils.sh
+
+video=$(getVideoPath $1)
+checkDeps tmux
 
 tmux new-session -d -s $session
 tmux rename-window -t 0 $window
@@ -41,12 +46,12 @@ tmux select-pane -t 7 -T "object detector"
 tmux setw synchronize-panes
 tmux send-keys -t $session "cd $ros2_ws" C-m
 tmux send-keys -t $session "source install/setup.bash" C-m
-tmux send-keys -t $session "export CYCLONEDDS_URI=file://$PWD/vision_config/cyclonedds.xml" C-m
+tmux send-keys -t $session "export CYCLONEDDS_URI=file://$pkg_share_path/config/cyclonedds.xml" C-m
 tmux send-keys -t $session "clear" C-m
 tmux setw synchronize-panes off
 
-tmux send-keys -t 3 "./src/eclipse-iceoryx/iceoryx/tools/introspection/build/iox-introspection-client --mempool" C-m
-tmux send-keys -t 2 "iox-roudi -c vision_config/roudi_config.toml" C-m
+tmux send-keys -t 3 "$iceoryx_path/iox-introspection-client --mempool" C-m
+tmux send-keys -t 2 "$iceoryx_path/iox-roudi -c $pkg_share_path/config/roudi_config.toml" C-m
 
 tmux send-keys -t 1 "ros2 run $package display" C-m
 

@@ -1,1 +1,4 @@
 .vscode
+
+config/*.weights
+config/*.cfg

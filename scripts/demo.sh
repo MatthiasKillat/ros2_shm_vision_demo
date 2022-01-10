@@ -3,10 +3,14 @@
 session="demo"
 window="ros2 vision demo"
 
-ros2_ws="~/ade-home/ros2_rolling/"
-package="ros2_shm_vision_demo"
-#set some video path
-video="./video/apex_ai.mp4"
+ros2_ws="$HOME/code/ros/rolling"
+package="shm_vision_demo"
+
+# includ helper functions
+source ./utils.sh
+
+video=$(getVideoPath $1)
+checkDeps tmux bmon sysstat
 
 tmux new-session -d -s $session
 tmux rename-window -t 0 $window
