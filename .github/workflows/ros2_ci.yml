@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         package_name:
-          - ros2_shm_vision_demo
+          - shm_vision_demo
         ros_distribution:
           - rolling
         include:
