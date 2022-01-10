@@ -1,71 +1,87 @@
+// Copyright 2021 Matthias Killiat
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#include <opencv2/opencv.hpp>
+
 #include <cstring>
 #include <iomanip>
 #include <memory>
-
-#include <opencv2/opencv.hpp>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "exchange_sync.hpp"
-#include "fps_estimator.hpp"
-#include "image_message.hpp"
-#include "perf_stats.hpp"
-#include "ros2_shm_vision_demo/msg/image.hpp"
+#include "shm_vision_demo/exchange_sync.hpp"
+#include "shm_vision_demo/fps_estimator.hpp"
+#include "shm_vision_demo/image_message.hpp"
+#include "shm_vision_demo/msg_types.hpp"
+#include "shm_vision_demo/perf_stats.hpp"
 
-namespace demo {
-class Listener : public rclcpp::Node {
-private:
-  using ImageMsg = ros2_shm_vision_demo::msg::Image;
 
+namespace demo
+{
+
+
+class Listener : public rclcpp::Node
+{
 public:
-  explicit Listener(const rclcpp::NodeOptions &options)
-      : Node("shm_demo_vision_listener", options) {
-
+  explicit Listener(const rclcpp::NodeOptions & options)
+  : Node("shm_demo_vision_listener", options)
+  {
     rclcpp::QoS qos(rclcpp::KeepLast(1));
 
     m_computationThread = std::thread(&Listener::thread_main, this);
 
     auto inputCallback = [this](const ImageMsg::SharedPtr msg) -> void {
-      receive_message(msg, m_inputBuffer);
-      // process_input_message(msg);
-    };
+        receive_message(msg, m_inputBuffer);
+        // process_input_message(msg);
+      };
 
     m_inputSubscription =
-        create_subscription<ImageMsg>("input_stream", qos, inputCallback);
+      create_subscription<ImageMsg>("input_stream", qos, inputCallback);
 
     auto filterCallback = [this](const ImageMsg::SharedPtr msg) -> void {
-      receive_message(msg, m_filterBuffer);
-      // process_filter_message(msg);
-    };
+        receive_message(msg, m_filterBuffer);
+        // process_filter_message(msg);
+      };
     m_filterSubscription =
-        create_subscription<ImageMsg>("filtered_stream", qos, filterCallback);
+      create_subscription<ImageMsg>("filtered_stream", qos, filterCallback);
 
     auto edgesCallback = [this](const ImageMsg::SharedPtr msg) -> void {
-      receive_message(msg, m_edgesBuffer);
-      // process_edges_message(msg);
-    };
+        receive_message(msg, m_edgesBuffer);
+        // process_edges_message(msg);
+      };
     m_edgesSubscription =
-        create_subscription<ImageMsg>("edges_stream", qos, edgesCallback);
+      create_subscription<ImageMsg>("edges_stream", qos, edgesCallback);
 
     auto flowCallback = [this](const ImageMsg::SharedPtr msg) -> void {
-      receive_message(msg, m_flowBuffer);
-      // process_optical_flow_message(msg);
-    };
+        receive_message(msg, m_flowBuffer);
+        // process_optical_flow_message(msg);
+      };
     m_flowSubscription =
-        create_subscription<ImageMsg>("optical_flow_stream", qos, flowCallback);
+      create_subscription<ImageMsg>("optical_flow_stream", qos, flowCallback);
 
     // note: we could also just transfer the bounding boxes in a message
     auto objectsCallback = [this](const ImageMsg::SharedPtr msg) -> void {
-      receive_message(msg, m_objectsBuffer);
-      // process_objects_message(msg);
-    };
+        receive_message(msg, m_objectsBuffer);
+        // process_objects_message(msg);
+      };
     m_objectsSubscription =
-        create_subscription<ImageMsg>("objects_stream", qos, objectsCallback);
-    
+      create_subscription<ImageMsg>("objects_stream", qos, objectsCallback);
     m_windowName = "ROS 2 Vision Demo";
   }
 
-  ~Listener() {
+  ~Listener()
+  {
     m_keepRunning = false;
     if (m_computationThread.joinable()) {
       m_computationThread.join();
@@ -83,12 +99,13 @@ private:
   std::thread m_computationThread;
 
   cv::Mat m_fusionResult;
-  
+
   std::string m_windowName;
 
-  struct ReceivedMsg {
-    ReceivedMsg(const ImageMsg::SharedPtr &msg, uint64_t time)
-        : msg(msg), receive_time(time) {}
+  struct ReceivedMsg
+  {
+    ReceivedMsg(const ImageMsg::SharedPtr & msg, uint64_t time)
+    : msg(msg), receive_time(time) {}
 
     const ImageMsg::SharedPtr msg;
     uint64_t receive_time;
@@ -102,18 +119,21 @@ private:
 
   PerfStats m_stats;
 
-  void receive_message(const ImageMsg::SharedPtr &msg,
-                       ExchangeBuffer<ReceivedMsg> &buffer) {
+  void receive_message(
+    const ImageMsg::SharedPtr & msg,
+    ExchangeBuffer<ReceivedMsg> & buffer)
+  {
     auto p = new ReceivedMsg(msg, m_stats.timestamp());
     p = buffer.write(p);
     delete p;
   }
 
-  void thread_main() {
+  void thread_main()
+  {
     while (m_keepRunning) {
       auto p = m_inputBuffer.take();
       if (p) {
-        auto &msg = p->msg;
+        auto & msg = p->msg;
         m_stats.new_frame(msg->count, msg->timestamp, p->receive_time);
         process_input_message(msg);
         delete p;
@@ -121,28 +141,28 @@ private:
 
       p = m_filterBuffer.take();
       if (p) {
-        auto &msg = p->msg;
+        auto & msg = p->msg;
         process_filter_message(msg);
         delete p;
       }
 
       p = m_edgesBuffer.take();
       if (p) {
-        auto &msg = p->msg;
+        auto & msg = p->msg;
         process_edges_message(msg);
         delete p;
       }
 
       p = m_flowBuffer.take();
       if (p) {
-        auto &msg = p->msg;
+        auto & msg = p->msg;
         process_optical_flow_message(msg);
         delete p;
       }
 
       p = m_objectsBuffer.take();
       if (p) {
-        auto &msg = p->msg;
+        auto & msg = p->msg;
         process_objects_message(msg);
         delete p;
       }
@@ -155,7 +175,8 @@ private:
     }
   }
 
-  void process_input_message(const ImageMsg::SharedPtr &msg) {
+  void process_input_message(const ImageMsg::SharedPtr & msg)
+  {
     cv::Mat frame;
     from_message(msg, frame);
     if (frame.size().empty()) {
@@ -165,15 +186,16 @@ private:
     cv::namedWindow(m_windowName);
     cv::imshow(m_windowName, frame);  // display_input
 
-    // TODO: brittle, improve setting the buffer
+    // TODO(matthiaskillat): brittle, improve setting the buffer
     // cannot deal with size change etc.
     if (m_fusionResult.rows != frame.rows) {
       m_fusionResult =
-          cv::Mat::zeros(cv::Size(frame.cols, frame.rows), CV_8UC3);
+        cv::Mat::zeros(cv::Size(frame.cols, frame.rows), CV_8UC3);
     }
   }
 
-  void process_filter_message(const ImageMsg::SharedPtr &msg) {
+  void process_filter_message(const ImageMsg::SharedPtr & msg)
+  {
     cv::Mat frame;
     from_message(msg, frame);
     if (frame.size().empty()) {
@@ -191,7 +213,8 @@ private:
     }
   }
 
-  void process_edges_message(const ImageMsg::SharedPtr &msg) {
+  void process_edges_message(const ImageMsg::SharedPtr & msg)
+  {
     cv::Mat frame;
     from_message(msg, frame);
     if (frame.size().empty()) {
@@ -208,7 +231,8 @@ private:
     }
   }
 
-  void process_optical_flow_message(const ImageMsg::SharedPtr &msg) {
+  void process_optical_flow_message(const ImageMsg::SharedPtr & msg)
+  {
     cv::Mat frame;
     from_message(msg, frame);
     if (frame.size().empty()) {
@@ -226,7 +250,8 @@ private:
     }
   }
 
-  void process_objects_message(const ImageMsg::SharedPtr &msg) {
+  void process_objects_message(const ImageMsg::SharedPtr & msg)
+  {
     cv::Mat frame;
     from_message(msg, frame);
     if (frame.size().empty()) {
@@ -240,12 +265,13 @@ private:
     }
   }
 
-  bool fusionInitialized() { return m_fusionResult.rows > 0; }
+  bool fusionInitialized() {return m_fusionResult.rows > 0;}
 };
 
-} // namespace demo
+}  // namespace demo
 
-int main(int argc, char *argv[]) {
+int main(int argc, char * argv[])
+{
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
   rclcpp::spin(std::make_shared<demo::Listener>(options));

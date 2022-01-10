@@ -1,49 +1,66 @@
+// Copyright 2021 Matthias Killiat
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#include <opencv2/opencv.hpp>
+#include <signal.h>
+
 #include <cstring>
 #include <iomanip>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <utility>
 
-#include <signal.h>
-
-#include <opencv2/opencv.hpp>
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "background.hpp"
-#include "exchange_sync.hpp"
-#include "filter.hpp"
-#include "fps_estimator.hpp"
-#include "image_message.hpp"
-#include "perf_stats.hpp"
-#include "ros2_shm_vision_demo/msg/image.hpp"
-#include "saliency.hpp"
+#include "shm_vision_demo/background.hpp"
+#include "shm_vision_demo/exchange_sync.hpp"
+#include "shm_vision_demo/filter.hpp"
+#include "shm_vision_demo/fps_estimator.hpp"
+#include "shm_vision_demo/image_message.hpp"
+#include "shm_vision_demo/msg_types.hpp"
+#include "shm_vision_demo/perf_stats.hpp"
+#include "shm_vision_demo/saliency.hpp"
 
-namespace demo {
-class FilterNode : public rclcpp::Node {
-private:
-  using ImageMsg = ros2_shm_vision_demo::msg::Image;
 
+namespace demo
+{
+
+
+class FilterNode : public rclcpp::Node
+{
 public:
-  explicit FilterNode(const rclcpp::NodeOptions &options)
-      : Node("shm_demo_vision_filter", options) {
-
+  explicit FilterNode(const rclcpp::NodeOptions & options)
+  : Node("shm_demo_vision_filter", options)
+  {
     // only work with the latest message and drop the others
     rclcpp::QoS qos(rclcpp::KeepLast(1));
     m_publisher = this->create_publisher<ImageMsg>("filtered_stream", qos);
 
     auto callback = [this](const ImageMsg::SharedPtr msg) -> void {
-      receive_message(msg);
-      // process_message(msg);
-    };
+        receive_message(msg);
+        // process_message(msg);
+      };
 
     m_computationThread = std::thread(&FilterNode::thread_main, this);
 
     m_subscription =
-        create_subscription<ImageMsg>("input_stream", qos, callback);
+      create_subscription<ImageMsg>("input_stream", qos, callback);
   }
 
-  ~FilterNode() {
+  ~FilterNode()
+  {
     m_keepRunning = false;
     if (m_computationThread.joinable()) {
       m_computationThread.join();
@@ -57,9 +74,10 @@ private:
   std::atomic_bool m_keepRunning{true};
   std::thread m_computationThread;
 
-  struct ReceivedMsg {
-    ReceivedMsg(const ImageMsg::SharedPtr &msg, uint64_t time)
-        : msg(msg), receive_time(time) {}
+  struct ReceivedMsg
+  {
+    ReceivedMsg(const ImageMsg::SharedPtr & msg, uint64_t time)
+    : msg(msg), receive_time(time) {}
 
     const ImageMsg::SharedPtr msg;
     uint64_t receive_time;
@@ -74,18 +92,20 @@ private:
   SaliencyFilter m_saliency;
   cv::Mat m_result;
 
-  void receive_message(const ImageMsg::SharedPtr &msg) {
+  void receive_message(const ImageMsg::SharedPtr & msg)
+  {
     auto p = new ReceivedMsg(msg, m_stats.timestamp());
     p = m_buffer.write(p);
     delete p;
   }
 
-  void thread_main() {
-    // TODO: wait on semaphore
+  void thread_main()
+  {
+    // TODO(matthiaskillat): wait on semaphore
     while (m_keepRunning) {
       auto p = m_buffer.take();
       if (p) {
-        auto &msg = p->msg;
+        auto & msg = p->msg;
         m_stats.new_frame(msg->count, msg->timestamp, p->receive_time);
         process_message(msg);
         delete p;
@@ -93,7 +113,8 @@ private:
     }
   }
 
-  void process_message(const ImageMsg::SharedPtr &msg) {
+  void process_message(const ImageMsg::SharedPtr & msg)
+  {
     cv::Mat frame;
     from_message(msg, frame);
 
@@ -107,17 +128,20 @@ private:
     display(frame);
 
     auto loanedMsg = m_publisher->borrow_loaned_message();
-    fill_loaned_message(loanedMsg, m_result, m_stats.timestamp(),
-                        m_stats.count());
+    fill_loaned_message(
+      loanedMsg, m_result, m_stats.timestamp(),
+      m_stats.count());
     m_publisher->publish(std::move(loanedMsg));
   }
 
-  void display(const cv::Mat &) {
+  void display(const cv::Mat &)
+  {
     m_stats.print("filter ");
     cv::waitKey(1);
   }
 
-  void algorithm(cv::Mat &frame) {
+  void algorithm(cv::Mat & frame)
+  {
     cv::Mat scaled, gray, bg, blurred, blended, saliency, blendFactor;
 
     m_filter.downscale(frame, 2, scaled);
@@ -150,7 +174,7 @@ private:
   }
 };
 
-} // namespace demo
+}  // namespace demo
 
 std::shared_ptr<demo::FilterNode> node;
 
@@ -159,8 +183,8 @@ std::shared_ptr<demo::FilterNode> node;
 //   rclcpp::shutdown();
 // }
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char * argv[])
+{
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
 

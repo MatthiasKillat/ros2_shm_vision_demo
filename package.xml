@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ros2_shm_vision_demo</name>
+  <name>shm_vision_demo</name>
   <version>0.14.3</version>
   <description>
     Show how to use Shared Memory in ROS 2 with CycloneDDS and iceoryx as middleware.
