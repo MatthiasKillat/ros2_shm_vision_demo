@@ -8,16 +8,10 @@ package="shm_vision_demo"
 iceoryx_path="$ros2_ws/install/iceoryx_posh/bin"
 pkg_share_path="${ros2_ws}/install/$package/share/$package"
 
-# if argument is present, use that for filename
-if [[ -z "$1" ]]; then
-  # default to devices camera
-  video=""
-else
-  video="$1"
-fi
-
+# includ helper functions
 source ./utils.sh
 
+video=$(getVideoPath $1)
 checkDeps tmux
 
 tmux new-session -d -s $session

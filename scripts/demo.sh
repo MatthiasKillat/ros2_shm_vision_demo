@@ -6,16 +6,10 @@ window="ros2 vision demo"
 ros2_ws="$HOME/code/ros/rolling"
 package="shm_vision_demo"
 
-# if argument is present, use that for filename
-if [[ -z "$1" ]]; then
-  # default
-  video=""
-else
-  video="$1"
-fi
-
+# includ helper functions
 source ./utils.sh
 
+video=$(getVideoPath $1)
 checkDeps tmux bmon sysstat
 
 tmux new-session -d -s $session

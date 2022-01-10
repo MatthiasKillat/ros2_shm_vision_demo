@@ -55,12 +55,18 @@ ament_target_dependencies(object_detector rclcpp)
 install(TARGETS camera display filter edge_detector optical_flow object_detector
   DESTINATION lib/${PROJECT_NAME})
 
-# download yolov3 weights to shm_vision_demo/models/
+# download yolov3 weights to shm_vision_demo/config/
 add_custom_command(TARGET object_detector
   PRE_BUILD
   COMMAND sh scripts/download_yolo_weights.sh yolov3.weights
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "YOLOv3 weights")
+# download yolov3 cfg to shm_vision_demo/config/
+add_custom_command(TARGET object_detector
+  PRE_BUILD
+  COMMAND sh scripts/download_yolo_cfg.sh yolov3.cfg
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "YOLOv3 cfg")
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

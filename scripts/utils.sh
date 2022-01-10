@@ -12,3 +12,14 @@ checkFileExists() {
     test -e $path || echo "File does not exist ${path}" && exit 2
   done
 }
+
+getVideoPath() {
+  # if argument is present, use that for filename
+  if [[ -z "$1" ]]; then
+    # default to live camera on device
+    video=""
+  else
+    video="$1"
+  fi
+  echo $video
+}

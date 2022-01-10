@@ -20,7 +20,7 @@ TODO: more detail
 
 2. Clone the `shm_vision_demo` repo into your `colcon_ws/src` directory
 
-3. Clone `iceoryx` repo into your `colcon_ws/src` directory - parallel with the repo you just cloned in step number two
+3. Clone [the `iceoryx` repo](https://github.com/eclipse-iceoryx/iceoryx) into your `colcon_ws/src` directory - parallel with the repo you just cloned in step number two
 
 4. Build using `colcon build --packages-up-to shm_vision_demo`.  While building it will automatically fetch the `yolov3.weights` file from https://pjreddie.com/darknet/yolo/ and copy them to the `shm_vision_demo/config` directory. The weights file is fairly large so it is not included in the repository but automatically downloaded during the build.
 
@@ -30,7 +30,7 @@ The following files are needed in the `config/` directory:
   - `yolov3.weights` (YOLOv3-320 for the right image size)
 
 
-5. Adapt the `ros2_ws` and `video` variables in the `scripts/demo.sh` and `scripts/shm_demo.sh` scripts, located in the `scripts` folder as needed. `ros2_ws` needs to point to the ROS 2 rolling workspace and `video` to some full hd video.
+5. Adapt the `ros2_ws` variable in the `scripts/demo.sh` and `scripts/shm_demo.sh` scripts as needed. `ros2_ws` needs to point to the ROS 2 rolling workspace where `shm_vision_demo` and `iceoryx` are located.
 
 ## Running the applications
 
