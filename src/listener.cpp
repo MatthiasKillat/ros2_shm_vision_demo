@@ -168,7 +168,7 @@ private:
       }
 
       if (fusionInitialized()) {
-        cv::namedWindow(m_windowName);
+        cv::namedWindow(m_windowName, cv::WINDOW_NORMAL);
         cv::imshow(m_windowName, m_fusionResult);
       }
       cv::waitKey(1);
@@ -183,7 +183,7 @@ private:
       return;
     }
     m_stats.print("display ");
-    cv::namedWindow(m_windowName);
+    cv::namedWindow(m_windowName, cv::WINDOW_NORMAL);
     cv::imshow(m_windowName, frame);  // display_input
 
     // TODO(matthiaskillat): brittle, improve setting the buffer
@@ -238,7 +238,7 @@ private:
     if (frame.size().empty()) {
       return;
     }
-    cv::namedWindow(m_windowName);
+    cv::namedWindow(m_windowName, cv::WINDOW_NORMAL);
     cv::imshow(m_windowName, frame);  // display_optical_flow
 
     if (fusionInitialized()) {
